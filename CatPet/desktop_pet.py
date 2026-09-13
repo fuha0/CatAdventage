@@ -20,6 +20,8 @@ from animation_controller import AnimationController
 from animation_state_machine import AnimationStateMachine
 from render_cache import RenderCache
 from services import GameState, ProgressionService, SaveService
+from letters import TUTORIAL_LETTER_ID
+from special_events import SpecialEventService
 from animations import AnimationMixin, DRAG_MODE_IDS
 from editor_enhancements import EditorEnhancementsMixin
 from renderer import RendererMixin, install_runtime_globals as install_renderer_globals
@@ -513,18 +515,18 @@ EXPLORE_TIMES = (5, 10, 15, 20, 25, 30)  # 低语森林可选时间（5 的倍�
 EXTRA_TREASURE_INTERVAL_MINUTES = 10  # 每满 10 分钟获得一次额外宝藏判定
 EXTRA_TREASURE_CHANCE_FACTOR = 0.60   # 额外宝藏判定几率 = 平均成功率 × 60%
 ADVENTURE_BREAD_MINUTES_PER_UNIT = 5  # 非平原地区每 5 分钟消耗 1 个面包
-XP_PLAIN = 30                   # 平原（编号1）基础经验 +30
-XP_FOREST_PER_MIN_MIN = 10      # 低语森林每分钟经验下限
-XP_FOREST_PER_MIN_MAX = 15      # 低语森林每分钟经验上限
+XP_PLAIN = 50                   # 风和平原基础经验
+XP_FOREST_PER_MIN_MIN = 24      # 低语森林每分钟经验下限
+XP_FOREST_PER_MIN_MAX = 28      # 低语森林每分钟经验上限
 STARTING_BREAD = 10             # 首次进入游戏赠送面包数
 STARTING_GOLD = 20              # 新存档初始金币
 REGION_RECOMMENDED_LEVEL = {1: 5, 2: 15, 3: 20}
 REGION_SUCCESS_LEVELS = {1: 20, 2: 30, 3: 40}
 
 REGIONS = {
-    # 地区编号：平原=1（保底，固定5分钟）
-    '1': {'name': '风和平原', 'difficulty': '简单', 'fallback': True,
-          'fixed_minutes': 5, 'recommended_level': 1, 'min_level': 1,
+    # 地区编号：平原=1（保底，不消耗面包）
+    '1': {'fixed_minutes': 5, 'name': '风和平原', 'difficulty': '简单', 'fallback': True,
+          'recommended_level': 1, 'min_level': 1,
           'extra_treasure_max': 1,
           'treasure_quality_weights': TREASURE_REGION_QUALITY_WEIGHTS[1],
           'treasure_quality_caps': TREASURE_REGION_QUALITY_CAPS.get(1, {}),
@@ -917,6 +919,13 @@ class DesktopPet(RendererMixin, InteractionAnimationMixin, AnimationMixin, Edito
             luck_initial=LUCK_INITIAL, emotion_initial=EMOTION_INITIAL,
             gold_initial=STARTING_GOLD)
         self.game = self.save_service.load()
+        if self.cat_name:
+            try:
+                if SpecialEventService.activate(
+                        self.game, 'first_naming'):
+                    self.save_service.save(self.game)
+            except Exception:
+                pass
         try:
             self._loaded_cat_scale = float(
                 getattr(self.game, 'cat_scale', 1.0))
@@ -976,7 +985,7 @@ class DesktopPet(RendererMixin, InteractionAnimationMixin, AnimationMixin, Edito
         self._warehouse_items = None         # 仓库物品列表容器
         self._warehouse_job = None           # 仓库刷新定时任务
         self._warehouse_pages = None         # 仓库分类页
-        self._warehouse_cat = '装备'
+        self._warehouse_cat = '宝藏'
         self._food_spins = {}
         self._selected_food = None
         self._last_food_status = ''
@@ -1061,6 +1070,7 @@ class DesktopPet(RendererMixin, InteractionAnimationMixin, AnimationMixin, Edito
         # 创建标签显示图片，并应用保存的猫咪比例。
         self._click_bounce_frames = []
         self._click_bounce_scale = (1.0, 1.0)
+        self._last_click_bounce = 0.0
         self.label = tk.Label(self.root, bg=TRANSPARENT_COLOR, cursor='arrow')
         self.label.pack()
         self.set_scale(getattr(self, '_loaded_cat_scale', 1.0))
@@ -1071,7 +1081,6 @@ class DesktopPet(RendererMixin, InteractionAnimationMixin, AnimationMixin, Edito
         self.moved = False
         self._drag_mode = 1  # 抓取反抗模式 1/2/3
         self._jump_state = None   # 跳跃状态
-        self._jump_air_expression = False
         self._jump_hand_mode = ''
         self._jump_job = None
         self._jump_t0 = 0.0
@@ -1140,6 +1149,7 @@ class DesktopPet(RendererMixin, InteractionAnimationMixin, AnimationMixin, Edito
 
         # 随机动作定时任务 id
         self._anim_job = None
+        self._meow_job = None
 
         # 绑定事件
         self.label.bind('<Button-1>', self.on_drag_start)
@@ -1467,15 +1477,59 @@ class DesktopPet(RendererMixin, InteractionAnimationMixin, AnimationMixin, Edito
 
 
 
+    def _record_obtained_items(self):
+        """登记首次获得的物品，并标记对应仓库主页未读。"""
+        if not hasattr(self.game, 'obtained_items'):
+            self.game.obtained_items = set()
+            for iid, count in self.inventory.items():
+                try:
+                    if int(count) > 0:
+                        self.game.obtained_items.add(iid)
+                except (TypeError, ValueError):
+                    continue
+            if not hasattr(self.game, 'new_item_categories'):
+                self.game.new_item_categories = set()
+            return False
+        obtained = getattr(self.game, 'obtained_items', set())
+        if not isinstance(obtained, set):
+            obtained = set(obtained or ())
+        unseen = getattr(self.game, 'new_item_categories', set())
+        if not isinstance(unseen, set):
+            unseen = set(unseen or ())
+        changed = False
+        for iid, count in self.inventory.items():
+            try:
+                owned = int(count) > 0
+            except (TypeError, ValueError):
+                owned = False
+            if not owned or iid in obtained:
+                continue
+            obtained.add(iid)
+            changed = True
+            category = (ITEMS.get(iid) or {}).get('category')
+            if category in ('物品', '特殊', '装备'):
+                unseen.add(category)
+            elif category in ('书籍', '头饰', '服装', '饰品'):
+                unseen.add('装备')
+        self.game.obtained_items = obtained
+        self.game.new_item_categories = unseen
+        return changed
+
     # ---------- 存档 / 状态面板 ----------
     def _save_satiety(self):
         """通过 SaveService 原子保存唯一 GameState。"""
+        recorded = self._record_obtained_items()
         try:
             self.save_service.save(self.game)
             CONTENT_REPOSITORY.write_error_log(CONTENT_ERRORS)
         except Exception as exc:
             print('[save] ' + str(exc), file=sys.stderr)
         self._update_tray_title()
+        if recorded and hasattr(self, '_refresh_warehouse_tab_indicators'):
+            try:
+                self._refresh_warehouse_tab_indicators()
+            except Exception:
+                pass
         try:
             self.update_image()
         except Exception:
@@ -1675,6 +1729,7 @@ class DesktopPet(RendererMixin, InteractionAnimationMixin, AnimationMixin, Edito
         if consume_collar and self.inventory.get('name_collar', 0) <= 0:
             self._alert('新项圈', '没有新项圈了，去杂货铺买一个吧。')
             return
+        first_naming = not bool(self.cat_name)
         from tkinter import simpledialog
         name = simpledialog.askstring(
             '猫猫命名', '请为你的猫猫命名：',
@@ -1685,6 +1740,8 @@ class DesktopPet(RendererMixin, InteractionAnimationMixin, AnimationMixin, Edito
             name = '猫猫'
         name = str(name).strip()[:12] or '猫猫'
         self.cat_name = name
+        if first_naming:
+            SpecialEventService.activate(self.game, 'first_naming')
         if consume_collar:
             self.inventory['name_collar'] = max(
                 0, int(self.inventory.get('name_collar', 0)) - 1)
@@ -1697,6 +1754,17 @@ class DesktopPet(RendererMixin, InteractionAnimationMixin, AnimationMixin, Edito
                 pass
         self._refresh_warehouse()
         self._refresh_admin_save_slots()
+        if first_naming:
+            self.root.after(0, self._open_tutorial_letter)
+
+    def _open_tutorial_letter(self):
+        """首次命名后打开仓库中的游戏教程信件。"""
+        self.show_warehouse()
+        if (self._warehouse_win is None
+                or not self._warehouse_win.winfo_exists()):
+            return
+        self._select_warehouse_tab('信件')
+        self._select_letter(TUTORIAL_LETTER_ID)
 
     def show_admin(self):
         if self._admin_win is not None and self._admin_win.winfo_exists():
@@ -2449,6 +2517,9 @@ class DesktopPet(RendererMixin, InteractionAnimationMixin, AnimationMixin, Edito
                         enabled=lambda item: (not self.adventuring
                                               and not self.hospitalized)),
                     pystray.MenuItem(
+                        '取消探险', self._on_tray_cancel_adventure,
+                        enabled=lambda item: self.adventuring),
+                    pystray.MenuItem(
                         '寻找猫咪', self._on_tray_find_cat,
                         enabled=lambda item: (not self.adventuring
                                               and not self.hospitalized)),
@@ -2476,6 +2547,9 @@ class DesktopPet(RendererMixin, InteractionAnimationMixin, AnimationMixin, Edito
             self._tray_cmd = None
             if not self.adventuring and not self.hospitalized:
                 self._show_tray_adventure_menu()
+        elif self._tray_cmd == 'cancel_adventure':
+            self._tray_cmd = None
+            self._confirm_cancel_adventure()
         elif self._tray_cmd == 'find_cat':
             self._tray_cmd = None
             if not self.adventuring and not self.hospitalized:
@@ -2501,12 +2575,30 @@ class DesktopPet(RendererMixin, InteractionAnimationMixin, AnimationMixin, Edito
         if not self.adventuring and not self.hospitalized:
             self._tray_cmd = 'adventure'
 
+    def _on_tray_cancel_adventure(self, icon, item):
+        """托盘菜单“取消探险”：转交主线程显示确认框。"""
+        if self.adventuring:
+            self._tray_cmd = 'cancel_adventure'
+
+    def _confirm_cancel_adventure(self):
+        """确认后直接取消本次探险，不进入结算流程。"""
+        if not self.adventuring:
+            return
+        try:
+            import tkinter.messagebox as mb
+            confirmed = mb.askyesno(
+                '取消探险', '中途返程将没有奖励哦!确定返回吗？')
+        except Exception:
+            return
+        if confirmed:
+            self._cancel_adventure()
+
     def _on_tray_find_cat(self, icon, item):
         """托盘菜单“寻找猫咪”：由主线程重新生成桌宠。"""
         if not self.adventuring and not self.hospitalized:
             self._tray_cmd = 'find_cat'
 
-    def _find_cat(self):
+    def _find_cat(self, reset_scale=True):
         """把猫咪恢复到初始生成状态，并传送到屏幕顶部中央。"""
         if self.closing or self.adventuring or self.hospitalized:
             return
@@ -2526,7 +2618,8 @@ class DesktopPet(RendererMixin, InteractionAnimationMixin, AnimationMixin, Edito
         self.flinging = False
         self.climbing = False
         self.pose = 'normal'
-        self.scale = 1.0
+        if reset_scale:
+            self.scale = 1.0
         self._set_comfy_active(False)
         self._falling_hands = False
         self._hand_lift = 0.0
@@ -2728,6 +2821,19 @@ class DesktopPet(RendererMixin, InteractionAnimationMixin, AnimationMixin, Edito
         self.close_scale_window()
         self._cancel_emotion_face()
         menu = tk.Menu(self.root, tearoff=0, bg='#ffffff', fg='#000000')
+        cat_name = getattr(self, 'cat_name', None) or '猫猫'
+        current = self._current_achievement()
+        title = (current or {}).get('name') or '暂无称号'
+        title_color = str((current or {}).get('text_color') or '#000000').strip()
+        if not re.fullmatch(r'#[0-9a-fA-F]{6}', title_color):
+            title_color = '#000000'
+        menu.add_command(label=f'名字：{cat_name}', foreground='#000000', activeforeground='#000000',
+                         command=lambda: None)
+        menu.add_command(label=f'等级：{self.level}', foreground='#000000', activeforeground='#000000',
+                         command=lambda: None)
+        menu.add_command(label=f'称号：{title}', foreground=title_color,
+                         activeforeground=title_color, command=lambda: None)
+        menu.add_separator()
         menu.add_command(label='仓库', command=self.show_warehouse)
         menu.add_command(label='集市', command=self.show_market)
         menu.add_command(label='探险', command=self.show_adventure)
