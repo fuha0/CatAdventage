@@ -2,10 +2,10 @@
 
 
 a = Analysis(
-    ['D:/CatAdventage/桌宠/desktop_pet.py'],
-    pathex=['D:/CatAdventage/桌宠'],
+    ['D:/CatAdventage/CatPet/desktop_pet.py'],
+    pathex=['D:/CatAdventage/CatPet'],
     binaries=[],
-    datas=[('D:/CatAdventage/素材', '素材')],
+    datas=[('D:/CatAdventage/Materials', 'Materials')],
     hiddenimports=['item_catalog', 'content_repository', 'emoticon_config', 'expression_config', 'colors', 'animations', 'warehouse_window', 'market_window', 'adventure_window', 'adventure_page', 'renderer', 'interaction_animations', 'render_cache', 'animation_controller', 'action_catalog', 'animation_state_machine', 'services', 'services.models', 'services.save', 'services.inventory', 'services.progression', 'services.treasure', 'services.adventure', 'services.market', 'editor_enhancements', 'stats', 'achievements', 'ui_theme', 'openpyxl'],
     hookspath=[],
     hooksconfig={},
