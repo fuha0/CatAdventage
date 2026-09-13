@@ -1,0 +1,30 @@
+# ---- Python ----
+__pycache__/
+*.py[cod]
+*.pyc
+*.egg-info/
+.venv/
+venv/
+
+# ---- PyInstaller 构建产物 ----
+build/
+dist/
+*.manifest
+
+# ---- 历史备份（含打包好的 exe / zip）----
+备份/
+
+# ---- 大体积且当前代码未引用的素材 ----
+素材/Apparel/
+素材/*.psd
+
+# ---- 由 xlsx 生成的缓存，可用 桌宠/build_content.py 重建 ----
+素材/content_cache.json
+
+# ---- 含密钥的本地备忘，不进版本库 ----
+素材/备忘.txt
+
+# ---- 运行时日志与系统文件 ----
+*.log
+.DS_Store
+Thumbs.db

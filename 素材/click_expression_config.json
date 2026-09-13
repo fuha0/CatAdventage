@@ -1,0 +1,25 @@
+{
+  "_说明": {
+    "概率": "数值是相对权重，不需要总和为100。",
+    "新增素材": "在对应部位增加 \"新ID\": {\"weight\": 10, \"file\": \"新素材.png\"}，然后把图片放到素材文件夹。",
+    "素材位置": "mouth = 嘴巴，eye = 眼睛，brow = 眉毛。"
+  },
+  "mouth": {
+    "mouth_happy": 20,
+    "mouth_huya": 20,
+    "mouth_sad": 20,
+    "mouth_comfy": 40
+  },
+  "eye": {
+    "eye": 25,
+    "eye_1": 25,
+    "eye_close2": 25,
+    "eye_comfy": 25,
+    "eye_close3": 25
+  },
+  "brow": {
+    "brow": 60,
+    "brow_1": 40
+  },
+  "assets": {}
+}
