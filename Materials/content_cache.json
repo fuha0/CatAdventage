@@ -1,0 +1,5242 @@
+{
+  "version": 1,
+  "generated_at": "2026-09-13T14:34:13",
+  "source": "excel",
+  "items": {
+    "bread": {
+      "name": "面包",
+      "kind": "食物",
+      "category": "物品",
+      "quality": "普通",
+      "desc": "探险时消耗的干粮，不能直接食用。除平原探险外，猫咪每探险5分钟就会吃掉1个。",
+      "price": 15,
+      "regions": [],
+      "code": 1001,
+      "can_buy": true,
+      "buy_price": 15,
+      "can_sell": false,
+      "sell_price": null,
+      "market_page": "杂货铺"
+    },
+    "apple": {
+      "name": "树果",
+      "kind": "食物",
+      "category": "物品",
+      "quality": "普通",
+      "desc": "探险时捡到的果子，酸甜口~",
+      "exp": 10,
+      "price": null,
+      "regions": [
+        1,
+        2
+      ],
+      "code": 1002,
+      "can_buy": false,
+      "buy_price": null,
+      "can_sell": true,
+      "sell_price": 1,
+      "market_page": "杂货铺"
+    },
+    "poultry": {
+      "name": "禽肉",
+      "kind": "食物",
+      "category": "物品",
+      "quality": "普通",
+      "desc": "从鸟类身上获得的肉，最喜欢吃鸡翅了。",
+      "exp": 15,
+      "price": null,
+      "regions": [
+        1,
+        2
+      ],
+      "code": 1003,
+      "can_buy": false,
+      "buy_price": null,
+      "can_sell": true,
+      "sell_price": 2,
+      "market_page": "杂货铺"
+    },
+    "mushroom": {
+      "name": "蘑菇",
+      "kind": "食物",
+      "category": "物品",
+      "quality": "普通",
+      "desc": "森林里采到的蘑菇，小心中毒哦。",
+      "exp": 10,
+      "price": null,
+      "regions": [
+        2
+      ],
+      "eat_effect": {
+        "hp_loss_chance": 0.2,
+        "hp_loss_ratio": 0.05
+      },
+      "code": 1004,
+      "can_buy": false,
+      "buy_price": null,
+      "can_sell": true,
+      "sell_price": 1,
+      "market_page": "杂货铺"
+    },
+    "bird_egg": {
+      "name": "鸟蛋",
+      "kind": "食物",
+      "category": "物品",
+      "quality": "普通",
+      "desc": "从鸟巢里发现的鸟蛋，吃了能获得经验。",
+      "exp": 12,
+      "price": null,
+      "regions": [
+        1,
+        2
+      ],
+      "code": 1009,
+      "can_buy": false,
+      "buy_price": null,
+      "can_sell": false,
+      "sell_price": null,
+      "market_page": "杂货铺"
+    },
+    "beast_meat": {
+      "name": "兽肉",
+      "kind": "食物",
+      "category": "物品",
+      "quality": "普通",
+      "desc": "从野兽身上获得的肉，猫咪也不是不可以茹毛饮血。",
+      "exp": 20,
+      "price": null,
+      "regions": [
+        1,
+        2
+      ],
+      "code": 1005,
+      "can_buy": false,
+      "buy_price": null,
+      "can_sell": true,
+      "sell_price": 3,
+      "market_page": "杂货铺"
+    },
+    "green_herb": {
+      "name": "绿草药",
+      "kind": "材料",
+      "category": "物品",
+      "quality": "普通",
+      "desc": "带有清新草木香气的绿色草药。",
+      "price": null,
+      "regions": [
+        1,
+        2
+      ],
+      "code": 1006,
+      "can_buy": false,
+      "buy_price": null,
+      "can_sell": false,
+      "sell_price": null,
+      "market_page": "杂货铺"
+    },
+    "yellow_herb": {
+      "name": "黄草药",
+      "kind": "材料",
+      "category": "物品",
+      "quality": "普通",
+      "desc": "晒干后仍带着温暖香气的黄色草药。",
+      "price": null,
+      "regions": [
+        2
+      ],
+      "code": 1007,
+      "can_buy": false,
+      "buy_price": null,
+      "can_sell": false,
+      "sell_price": null,
+      "market_page": "杂货铺"
+    },
+    "red_herb": {
+      "name": "红草药",
+      "kind": "材料",
+      "category": "物品",
+      "quality": "普通",
+      "desc": "颜色鲜艳的红色草药。",
+      "price": null,
+      "regions": [
+        2,
+        3
+      ],
+      "code": 1008,
+      "can_buy": false,
+      "buy_price": null,
+      "can_sell": false,
+      "sell_price": null,
+      "market_page": "杂货铺"
+    },
+    "flint": {
+      "name": "燧石",
+      "kind": "材料",
+      "category": "物品",
+      "quality": "普通",
+      "desc": "敲击时能产生火花的坚硬石块。",
+      "price": null,
+      "regions": [
+        1,
+        3
+      ],
+      "code": 1010,
+      "can_buy": false,
+      "buy_price": null,
+      "can_sell": false,
+      "sell_price": null,
+      "market_page": "杂货铺"
+    },
+    "ore": {
+      "name": "矿石",
+      "kind": "材料",
+      "category": "物品",
+      "quality": "普通",
+      "desc": "表面带着金属光泽的矿石。",
+      "price": null,
+      "regions": [
+        3
+      ],
+      "code": 1011,
+      "can_buy": false,
+      "buy_price": null,
+      "can_sell": false,
+      "sell_price": null,
+      "market_page": "杂货铺"
+    },
+    "jump_guide": {
+      "name": "猫咪跳远指南",
+      "kind": "书籍",
+      "category": "书籍",
+      "quality": "稀有",
+      "desc": "教猫咪如何立定跳远的小册子，勾选后会让猫咪偶尔练习跳远。",
+      "price": 1000,
+      "code": 2001,
+      "regions": [],
+      "can_buy": true,
+      "buy_price": 1000,
+      "can_sell": false,
+      "sell_price": null,
+      "market_page": "书店"
+    },
+    "pat_guide": {
+      "name": "乖，摸摸头",
+      "kind": "书籍",
+      "category": "书籍",
+      "quality": "稀有",
+      "desc": "一本教猫咪亲近人的小册子，勾选后猫咪偶尔会伸手抓鼠标。",
+      "price": 300,
+      "code": 2002,
+      "regions": [],
+      "can_buy": true,
+      "buy_price": 300,
+      "can_sell": false,
+      "sell_price": null,
+      "market_page": "书店"
+    },
+    "hair_dye": {
+      "name": "染发剂",
+      "kind": "道具",
+      "category": "特殊",
+      "quality": "稀有",
+      "desc": "一次性染发剂，可以改变猫咪头发、耳朵和尾巴的颜色。",
+      "price": 300,
+      "code": 3001,
+      "regions": [],
+      "can_buy": true,
+      "buy_price": 300,
+      "can_sell": false,
+      "sell_price": null,
+      "market_page": "杂货铺"
+    },
+    "lens": {
+      "name": "美瞳片",
+      "kind": "道具",
+      "category": "特殊",
+      "quality": "稀有",
+      "desc": "一次性美瞳，可以改变猫咪眼睛的颜色。",
+      "price": 100,
+      "code": 3002,
+      "regions": [],
+      "can_buy": true,
+      "buy_price": 100,
+      "can_sell": false,
+      "sell_price": null,
+      "market_page": "杂货铺"
+    },
+    "dye": {
+      "name": "染料",
+      "kind": "道具",
+      "category": "特殊",
+      "quality": "少见",
+      "desc": "为头饰、服装或饰品调色时消耗的染料。",
+      "price": 50,
+      "code": 3003,
+      "regions": [],
+      "can_buy": true,
+      "buy_price": 50,
+      "can_sell": false,
+      "sell_price": null,
+      "market_page": "杂货铺"
+    },
+    "sunglasses": {
+      "name": "太阳镜",
+      "kind": "头饰",
+      "category": "头饰",
+      "quality": "史诗",
+      "hidden_attribute": "眼部",
+      "desc": "一副适合猫咪尺寸的太阳镜，可以遮住眼睛。似乎不属于这个时代？",
+      "price": 400,
+      "code": 4001,
+      "regions": [],
+      "asset_file": "ornament/Sunglasses.png",
+      "can_buy": true,
+      "buy_price": 400,
+      "can_sell": false,
+      "sell_price": null,
+      "market_page": "服装店"
+    },
+    "gold_earrings": {
+      "name": "耳环",
+      "kind": "头饰",
+      "category": "头饰",
+      "quality": "稀有",
+      "hidden_attribute": "耳部",
+      "desc": "精致的金色耳环，会随着耳朵一起晃动。",
+      "price": 300,
+      "code": 4002,
+      "regions": [],
+      "asset_file": "ornament/Earrings_gold.png",
+      "can_buy": true,
+      "buy_price": 300,
+      "can_sell": false,
+      "sell_price": null,
+      "market_page": "服装店"
+    },
+    "hat_1": {
+      "name": "鸭舌帽",
+      "kind": "头饰",
+      "category": "头饰",
+      "quality": "史诗",
+      "hidden_attribute": "帽子",
+      "desc": "一顶可以调色的鸭舌帽。似乎不属于这个时代？",
+      "price": 250,
+      "code": 4003,
+      "regions": [],
+      "asset_file": "ornament/hat_1.png",
+      "can_buy": true,
+      "buy_price": 250,
+      "can_sell": false,
+      "sell_price": null,
+      "market_page": "服装店"
+    },
+    "hat_ji": {
+      "name": "一只小鸡",
+      "kind": "头饰",
+      "category": "头饰",
+      "quality": "传说",
+      "hidden_attribute": "帽子",
+      "desc": "小鸡造型的头饰，可以调色并放大缩小。让小鸡一直停在头上需要一定的技巧。",
+      "price": null,
+      "code": 4004,
+      "regions": [],
+      "asset_file": "ornament/hat_ji.png",
+      "can_buy": false,
+      "buy_price": null,
+      "can_sell": false,
+      "sell_price": null,
+      "market_page": "服装店"
+    },
+    "hat_2": {
+      "name": "小洋帽",
+      "kind": "头饰",
+      "category": "头饰",
+      "quality": "史诗",
+      "hidden_attribute": "帽子",
+      "desc": "一顶可分别调整棕色和米白色部分的小洋帽。似乎不属于这个时代？",
+      "price": 300,
+      "code": 4005,
+      "regions": [],
+      "asset_file": "ornament/hat_2.png",
+      "can_buy": true,
+      "buy_price": 300,
+      "can_sell": false,
+      "sell_price": null,
+      "market_page": "服装店"
+    },
+    "fine_collar": {
+      "name": "山寨的细项链",
+      "kind": "饰品",
+      "category": "饰品",
+      "quality": "普通",
+      "hidden_attribute": "项链",
+      "desc": "款式便宜的项链，店家赠送了心形和星形装饰以便更换。",
+      "price": 300,
+      "code": 6001,
+      "regions": [],
+      "asset_file": "ornament/Fine collar1.png;ornament/Fine collar2.png",
+      "can_buy": true,
+      "buy_price": 300,
+      "can_sell": false,
+      "sell_price": null,
+      "market_page": "服装店"
+    },
+    "white_moon": {
+      "name": "白月服饰",
+      "kind": "服装",
+      "category": "服装",
+      "quality": "稀有",
+      "clothes_style": "white_moon",
+      "desc": "兽族贵族在宗教仪式中穿着的白色月纹服饰。",
+      "price": 2000,
+      "code": 5001,
+      "regions": [],
+      "asset_file": "clothes2/clothes_whitemoon.png",
+      "can_buy": true,
+      "buy_price": 2000,
+      "can_sell": false,
+      "sell_price": null,
+      "market_page": "服装店"
+    },
+    "black_sun": {
+      "name": "黑日服饰",
+      "kind": "服装",
+      "category": "服装",
+      "quality": "稀有",
+      "clothes_style": "black_sun",
+      "desc": "兽族贵族在宗教仪式中穿着的黑色日纹服饰。",
+      "price": 2000,
+      "code": 5002,
+      "regions": [],
+      "asset_file": "clothes2/clothes_blacksun.png",
+      "can_buy": true,
+      "buy_price": 2000,
+      "can_sell": false,
+      "sell_price": null,
+      "market_page": "服装店"
+    },
+    "blue_noble": {
+      "name": "蓝色贵族服饰",
+      "kind": "服装",
+      "category": "服装",
+      "quality": "少见",
+      "clothes_style": "blue_noble",
+      "desc": "剪裁考究的蓝色贵族服饰，低调而正式。",
+      "price": 1500,
+      "code": 5003,
+      "regions": [],
+      "asset_file": "clothes2/clothes_Nobleman_blue.png",
+      "can_buy": true,
+      "buy_price": 1500,
+      "can_sell": false,
+      "sell_price": null,
+      "market_page": "服装店"
+    },
+    "clown": {
+      "name": "小丑服饰",
+      "kind": "服装",
+      "category": "服装",
+      "quality": "少见",
+      "clothes_style": "clown",
+      "desc": "冒险者职业“小丑”的特色服装，色彩鲜艳而夸张。",
+      "price": 1000,
+      "code": 5004,
+      "regions": [],
+      "asset_file": "clothes2/clothes_Clown.png",
+      "can_buy": true,
+      "buy_price": 1000,
+      "can_sell": false,
+      "sell_price": null,
+      "market_page": "服装店"
+    },
+    "expression_secret": {
+      "name": "表情管理-生无可恋",
+      "kind": "书籍",
+      "category": "书籍",
+      "quality": "少见",
+      "price": null,
+      "desc": "哦，我的上帝啊！这对一只小猫来说太可怕了。",
+      "code": 2003,
+      "regions": [],
+      "can_buy": false,
+      "buy_price": null,
+      "can_sell": false,
+      "sell_price": null,
+      "market_page": "书店"
+    },
+    "expression_happy": {
+      "name": "表情管理-天天开心！",
+      "kind": "书籍",
+      "category": "书籍",
+      "quality": "少见",
+      "price": null,
+      "desc": "妈妈告诉我，无论干什么都要乐观哦。",
+      "code": 2004,
+      "regions": [],
+      "can_buy": false,
+      "buy_price": null,
+      "can_sell": false,
+      "sell_price": null,
+      "market_page": "书店"
+    },
+    "expression_grumpy": {
+      "name": "表情管理-没头脑和不高兴",
+      "kind": "书籍",
+      "category": "书籍",
+      "quality": "少见",
+      "price": null,
+      "desc": "再戳，再戳…再戳我我就揍你哦！",
+      "code": 2005,
+      "regions": [],
+      "can_buy": false,
+      "buy_price": null,
+      "can_sell": false,
+      "sell_price": null,
+      "market_page": "书店"
+    },
+    "expression_comfy": {
+      "name": "表情管理-无所谓喵",
+      "kind": "书籍",
+      "category": "书籍",
+      "quality": "少见",
+      "price": null,
+      "desc": "我可能是世界上最幸福的猫…",
+      "code": 2006,
+      "regions": [],
+      "can_buy": false,
+      "buy_price": null,
+      "can_sell": false,
+      "sell_price": null,
+      "market_page": "书店"
+    },
+    "hairstyle_tool": {
+      "name": "理发工具",
+      "kind": "道具",
+      "category": "特殊",
+      "quality": "普通",
+      "price": 300,
+      "desc": "一次性理发工具，在仓库中使用后可以切换猫咪发型。",
+      "code": 3004,
+      "regions": [],
+      "can_buy": true,
+      "buy_price": 300,
+      "can_sell": false,
+      "sell_price": null,
+      "market_page": "杂货铺"
+    },
+    "name_collar": {
+      "name": "新项圈",
+      "kind": "道具",
+      "category": "特殊",
+      "quality": "稀有",
+      "price": 200,
+      "desc": "消耗一个为猫猫重新命名。",
+      "code": 3005,
+      "regions": [],
+      "can_buy": true,
+      "buy_price": 200,
+      "can_sell": false,
+      "sell_price": null,
+      "market_page": "杂货铺"
+    },
+    "throat_lozenge": {
+      "name": "润喉糖",
+      "kind": "道具",
+      "category": "特殊",
+      "quality": "稀有",
+      "display_quality": "蓝色",
+      "quality_color": "#3498db",
+      "price": null,
+      "desc": "一次性润喉糖，使用后可以试听并更换猫咪的单击音效。",
+      "code": 3006,
+      "regions": [],
+      "can_buy": false,
+      "buy_price": null,
+      "can_sell": false,
+      "sell_price": null,
+      "market_page": "杂货铺"
+    },
+    "peasant": {
+      "code": 5005,
+      "name": "村民衣服",
+      "kind": "服装",
+      "category": "服装",
+      "quality": "普通",
+      "regions": [],
+      "desc": "朴素耐穿的村民日常服装。",
+      "asset_file": "clothes2/clothes_peasant.png",
+      "can_buy": true,
+      "buy_price": 200,
+      "price": 200,
+      "can_sell": false,
+      "sell_price": null,
+      "market_page": "服装店",
+      "clothes_style": "peasant"
+    },
+    "thief": {
+      "code": 5006,
+      "name": "盗贼服",
+      "kind": "服装",
+      "category": "服装",
+      "quality": "少见",
+      "regions": [],
+      "desc": "轻便隐蔽的盗贼服装，适合潜行与探索。",
+      "asset_file": "clothes2/clothes_thief.png",
+      "can_buy": true,
+      "buy_price": 1000,
+      "price": 1000,
+      "can_sell": false,
+      "sell_price": null,
+      "market_page": "服装店",
+      "clothes_style": "thief"
+    },
+    "knight": {
+      "code": 5007,
+      "name": "骑士服",
+      "kind": "服装",
+      "category": "服装",
+      "quality": "少见",
+      "regions": [],
+      "desc": "带有护甲的骑士服装，庄重而坚固。",
+      "asset_file": "clothes2/clothes_knight.png",
+      "can_buy": true,
+      "buy_price": 1250,
+      "price": 1250,
+      "can_sell": false,
+      "sell_price": null,
+      "market_page": "服装店",
+      "clothes_style": "knight"
+    },
+    "hefu_blue": {
+      "code": 5008,
+      "name": "和服·蓝",
+      "kind": "服装",
+      "category": "服装",
+      "quality": "稀有",
+      "regions": [],
+      "desc": "蓝色的传统和服，款式宽松，袖子较长。",
+      "asset_file": "clothes2/clothes_hefu_blue.png",
+      "can_buy": true,
+      "buy_price": 1000,
+      "price": 1000,
+      "can_sell": false,
+      "sell_price": null,
+      "market_page": "服装店",
+      "clothes_style": "hefu_blue"
+    },
+    "hefu_green": {
+      "code": 5009,
+      "name": "和服·绿",
+      "kind": "服装",
+      "category": "服装",
+      "quality": "稀有",
+      "regions": [],
+      "desc": "绿色的传统和服，款式宽松，袖子较长。",
+      "asset_file": "clothes2/clothes_hefu_green.png",
+      "can_buy": true,
+      "buy_price": 1000,
+      "price": 1000,
+      "can_sell": false,
+      "sell_price": null,
+      "market_page": "服装店",
+      "clothes_style": "hefu_green"
+    },
+    "hefu_red": {
+      "code": 5010,
+      "name": "和服·红",
+      "kind": "服装",
+      "category": "服装",
+      "quality": "稀有",
+      "regions": [],
+      "desc": "红色的传统和服，款式宽松，袖子较长。",
+      "asset_file": "clothes2/clothes_hefu_red.png",
+      "can_buy": true,
+      "buy_price": 1000,
+      "price": 1000,
+      "can_sell": false,
+      "sell_price": null,
+      "market_page": "服装店",
+      "clothes_style": "hefu_red"
+    },
+    "north_maid1": {
+      "code": 5011,
+      "name": "北境女仆装",
+      "kind": "服装",
+      "category": "服装",
+      "quality": "少见",
+      "regions": [],
+      "desc": "来自北境的轻便女仆装。",
+      "asset_file": "clothes1/north_maid1.png",
+      "can_buy": true,
+      "buy_price": 750,
+      "price": 750,
+      "can_sell": false,
+      "sell_price": null,
+      "market_page": "服装店",
+      "clothes_style": "north_maid1"
+    },
+    "north_night": {
+      "code": 5012,
+      "name": "北境黑骑士",
+      "kind": "服装",
+      "category": "服装",
+      "quality": "稀有",
+      "regions": [],
+      "desc": "适合夜间行动的北境黑骑士服装。",
+      "asset_file": "clothes1/north_night.png",
+      "can_buy": true,
+      "buy_price": 2000,
+      "price": 2000,
+      "can_sell": false,
+      "sell_price": null,
+      "market_page": "服装店",
+      "clothes_style": "north_night"
+    },
+    "north_windbreaker": {
+      "code": 5013,
+      "name": "北境防风衣",
+      "kind": "服装",
+      "category": "服装",
+      "quality": "少见",
+      "regions": [],
+      "desc": "能够抵御寒风的北境外套。",
+      "asset_file": "clothes1/north_windbreaker.png",
+      "can_buy": true,
+      "buy_price": 750,
+      "price": 750,
+      "can_sell": false,
+      "sell_price": null,
+      "market_page": "服装店",
+      "clothes_style": "north_windbreaker"
+    }
+  },
+  "events": [
+    {
+      "name": "翻垃圾",
+      "summary": "在垃圾堆或废墟边翻找",
+      "regions": [
+        1
+      ],
+      "difficulty": 1,
+      "success_desc": "翻出了一些还能换钱的小东西~",
+      "success_reward": "金币+2，经验+2，宝藏×1",
+      "failure_desc": "什么都没找到.../好臭喵...",
+      "failure_penalty": "无"
+    },
+    {
+      "name": "清晨露水",
+      "summary": "草叶上挂着清亮的露水",
+      "regions": [
+        1
+      ],
+      "difficulty": 1,
+      "success_desc": "发现了一株药草！",
+      "success_reward": "黄药草×1",
+      "failure_desc": "很凉爽喵！/露水是甜的喵！",
+      "failure_penalty": "无"
+    },
+    {
+      "name": "草丛蘑菇",
+      "summary": "田埂边的草丛长着蘑菇",
+      "regions": [
+        1
+      ],
+      "difficulty": 1,
+      "success_desc": "采到了好吃的蘑菇！",
+      "success_reward": "蘑菇×1，经验+2",
+      "failure_desc": "蘑菇被踩坏了.../认错了,这个蘑菇不能吃…",
+      "failure_penalty": "无"
+    },
+    {
+      "name": "平原萤火虫",
+      "summary": "黄昏的平原上飞着萤火虫",
+      "regions": [
+        1
+      ],
+      "difficulty": 1,
+      "success_desc": "追逐萤火虫玩得很开心~",
+      "success_reward": "经验+5",
+      "failure_desc": "萤火虫很快散去.../撞进草丛...",
+      "failure_penalty": "无"
+    },
+    {
+      "name": "小鸢",
+      "summary": "一只小鸢挂在低矮的树枝上",
+      "regions": [
+        1
+      ],
+      "difficulty": 1,
+      "success_desc": "追着小鸢玩了一会~",
+      "success_reward": "经验+5",
+      "failure_desc": "小鸢跑了.../够不到树枝…",
+      "failure_penalty": "无"
+    },
+    {
+      "name": "雨后水洼",
+      "summary": "一场雨留下许多亮晶晶的水洼",
+      "regions": [
+        1
+      ],
+      "difficulty": 1,
+      "success_desc": "在水洼边发现了一颗树果！",
+      "success_reward": "树果×1",
+      "failure_desc": "踩进泥坑里了.../树果被鸟叼走…",
+      "failure_penalty": "无"
+    },
+    {
+      "name": "麦田鸟群",
+      "summary": "成群的鸟落在成熟麦穗上",
+      "regions": [
+        1
+      ],
+      "difficulty": 2,
+      "success_desc": "悄悄靠近并抓到了鸟！",
+      "success_reward": "禽肉×1，经验+3",
+      "failure_desc": "鸟群受惊飞走了.../被鸟啄了一下…",
+      "failure_penalty": "生命-1"
+    },
+    {
+      "name": "偷偷鼠的储粮",
+      "summary": "偷偷鼠在洞里藏了不少食物",
+      "regions": [
+        1
+      ],
+      "difficulty": 2,
+      "success_desc": "找到了一小堆树果！",
+      "success_reward": "树果×2，经验+2",
+      "failure_desc": "洞口空空的~/偷偷鼠逃走了！",
+      "failure_penalty": "无"
+    },
+    {
+      "name": "掉落的鸟巢",
+      "summary": "一个鸟巢从树枝上掉了下来",
+      "regions": [
+        1
+      ],
+      "difficulty": 2,
+      "success_desc": "鸟巢里留下了可用的禽肉！",
+      "success_reward": "禽肉×1，经验+2",
+      "failure_desc": "鸟巢里只有枯枝!/被母鸟赶走了…",
+      "failure_penalty": "无"
+    },
+    {
+      "name": "农夫的钱袋",
+      "summary": "农夫在田边弄丢了钱袋",
+      "regions": [
+        1
+      ],
+      "difficulty": 2,
+      "success_desc": "把钱袋交还后获得了谢礼~",
+      "success_reward": "金币+5，经验+2",
+      "failure_desc": "没找到喵~/帮倒忙了喵…",
+      "failure_penalty": "无"
+    },
+    {
+      "name": "野兔的藏身处",
+      "summary": "野兔在草窝里休息",
+      "regions": [
+        1
+      ],
+      "difficulty": 2,
+      "success_desc": "顺利赶走野兔并找到猎物",
+      "success_reward": "兽肉×1，经验+3",
+      "failure_desc": "野兔飞快逃走/被后腿踢到",
+      "failure_penalty": "无"
+    },
+    {
+      "name": "老树桩",
+      "summary": "田边有个长满苔藓的老树桩",
+      "regions": [
+        1
+      ],
+      "difficulty": 2,
+      "success_desc": "在树桩缝里找到了旧币",
+      "success_reward": "金币+3，经验+2",
+      "failure_desc": "树桩塌了/什么都没找到",
+      "failure_penalty": "生命-1"
+    },
+    {
+      "name": "农舍后院",
+      "summary": "农舍后院传来食物香气",
+      "regions": [
+        1
+      ],
+      "difficulty": 2,
+      "success_desc": "找到了禽肉和面包",
+      "success_reward": "禽肉×1，面包×1",
+      "failure_desc": "被看门猫赶走/食物被狗吃光",
+      "failure_penalty": "无"
+    },
+    {
+      "name": "迷路的小羊",
+      "summary": "小羊咩咩叫着找不到羊群",
+      "regions": [
+        1
+      ],
+      "difficulty": 2,
+      "success_desc": "把小羊送回羊群并得到感谢",
+      "success_reward": "经验+3",
+      "failure_desc": "小羊跑进灌木丛/被羊角顶到",
+      "failure_penalty": "无"
+    },
+    {
+      "name": "田埂鸟蛋",
+      "summary": "田埂边藏着一个鸟蛋",
+      "regions": [
+        1
+      ],
+      "difficulty": 2,
+      "success_desc": "小心收好了鸟蛋",
+      "success_reward": "禽肉×1，经验+3",
+      "failure_desc": "鸟蛋碎掉了/巢穴主人回来了",
+      "failure_penalty": "无"
+    },
+    {
+      "name": "稻草人下的旧箱",
+      "summary": "稻草人脚边藏着一只旧木箱",
+      "regions": [
+        1
+      ],
+      "difficulty": 3,
+      "success_desc": "打开箱子找到了旧物",
+      "success_reward": "宝藏×1，金币+3",
+      "failure_desc": "箱盖砸到爪子/箱子已经腐烂",
+      "failure_penalty": "生命-2"
+    },
+    {
+      "name": "麦田守望者",
+      "summary": "高大的牧羊犬守护着麦田",
+      "regions": [
+        1
+      ],
+      "difficulty": 3,
+      "success_desc": "成功通过了守望者的考验",
+      "success_reward": "兽肉×1，经验+5",
+      "failure_desc": "被牧羊犬赶出麦田/摔进沟里",
+      "failure_penalty": "生命-2"
+    },
+    {
+      "name": "空中的黑影",
+      "summary": "一只大鸟从头顶低空掠过",
+      "regions": [
+        1
+      ],
+      "difficulty": 3,
+      "success_desc": "躲开俯冲并抢到了猎物",
+      "success_reward": "禽肉×2，经验+4",
+      "failure_desc": "被大鸟抓了一下/猎物被抢走",
+      "failure_penalty": "生命-2"
+    },
+    {
+      "name": "风暴前的收获",
+      "summary": "乌云逼近，田里散落着农具和旧物",
+      "regions": [
+        1
+      ],
+      "difficulty": 3,
+      "success_desc": "赶在风暴前找到了旧物",
+      "success_reward": "宝藏×1，经验+5",
+      "failure_desc": "被风吹倒的农具砸到/东西被风卷走",
+      "failure_penalty": "生命-2"
+    },
+    {
+      "name": "牧羊犬的委托",
+      "summary": "牧羊犬请猫帮忙找回走失的小羊",
+      "regions": [
+        1
+      ],
+      "difficulty": 3,
+      "success_desc": "顺利找回了小羊",
+      "success_reward": "兽肉×1，金币+5，经验+4",
+      "failure_desc": "羊群跑散了/被带刺灌木划伤",
+      "failure_penalty": "生命-2"
+    },
+    {
+      "name": "捡到树果！",
+      "summary": "路上发现一棵结满果子的树",
+      "regions": [
+        1
+      ],
+      "difficulty": 1,
+      "success_desc": "摘到了新鲜的树果！",
+      "success_reward": "树果×1，经验+2",
+      "failure_desc": "果子摔坏了…",
+      "failure_penalty": "无"
+    },
+    {
+      "name": "草丛里的铜币",
+      "summary": "草丛里闪着一点光",
+      "regions": [
+        1
+      ],
+      "difficulty": 1,
+      "success_desc": "捡到了几枚铜币",
+      "success_reward": "金币+3",
+      "failure_desc": "走眼了喵。",
+      "failure_penalty": "无"
+    },
+    {
+      "name": "面包香气",
+      "summary": "远处飘来面包的香味",
+      "regions": [
+        1
+      ],
+      "difficulty": 1,
+      "success_desc": "好心人送了一个面包",
+      "success_reward": "面包×1，经验+1",
+      "failure_desc": "面包嘴馋被吃掉了...",
+      "failure_penalty": "无"
+    },
+    {
+      "name": "跌了一跤",
+      "summary": "没看清脚下的石头",
+      "regions": [
+        1
+      ],
+      "difficulty": 1,
+      "success_desc": "稳住了身形",
+      "success_reward": "经验+1",
+      "failure_desc": "摔疼了…",
+      "failure_penalty": "生命-2"
+    },
+    {
+      "name": "小溪边喝水",
+      "summary": "清澈的小溪在路边",
+      "regions": [
+        1
+      ],
+      "difficulty": 1,
+      "success_desc": "喝了水，精神多了",
+      "success_reward": "经验+1",
+      "failure_desc": "踩进水里湿了脚",
+      "failure_penalty": "无"
+    },
+    {
+      "name": "可爱的小鸟",
+      "summary": "小鸟在枝头跳来跳去",
+      "regions": [
+        1
+      ],
+      "difficulty": 1,
+      "success_desc": "和小鸟玩了一会儿",
+      "success_reward": "经验+2，禽肉×1",
+      "failure_desc": "小鸟飞走了",
+      "failure_penalty": "无"
+    },
+    {
+      "name": "迷路的蚂蚁",
+      "summary": "一队蚂蚁找不到路",
+      "regions": [
+        1
+      ],
+      "difficulty": 1,
+      "success_desc": "帮蚂蚁指了路",
+      "success_reward": "经验+1",
+      "failure_desc": "帮了倒忙",
+      "failure_penalty": "无"
+    },
+    {
+      "name": "掉落的铃铛",
+      "summary": "地上有个小小的铃铛",
+      "regions": [
+        1
+      ],
+      "difficulty": 1,
+      "success_desc": "获得一个品质普通或粗劣的宝藏",
+      "success_reward": "金币+2，宝藏×1",
+      "failure_desc": "铃铛坏了",
+      "failure_penalty": "无"
+    },
+    {
+      "name": "平原麦浪",
+      "summary": "金色麦田随风摇摆",
+      "regions": [
+        1
+      ],
+      "difficulty": 1,
+      "success_desc": "在麦田里休息了一会儿",
+      "success_reward": "经验+2",
+      "failure_desc": "迷路了一阵子",
+      "failure_penalty": "无"
+    },
+    {
+      "name": "稻草人",
+      "summary": "田边的稻草人吓了你一跳",
+      "regions": [
+        1
+      ],
+      "difficulty": 1,
+      "success_desc": "发现只是稻草人",
+      "success_reward": "经验+1",
+      "failure_desc": "吓了一跳，摔了一跤",
+      "failure_penalty": "生命-1"
+    },
+    {
+      "name": "发光的小石头",
+      "summary": "石头在阳光下闪闪发亮",
+      "regions": [
+        1
+      ],
+      "difficulty": 1,
+      "success_desc": "是块漂亮的小石头",
+      "success_reward": "金币+2",
+      "failure_desc": "只是块普通石头",
+      "failure_penalty": "无"
+    },
+    {
+      "name": "香甜的浆果",
+      "summary": "灌木上挂着甜甜的浆果",
+      "regions": [
+        1
+      ],
+      "difficulty": 1,
+      "success_desc": "吃到了浆果",
+      "success_reward": "树果×1",
+      "failure_desc": "被刺扎了一下",
+      "failure_penalty": "生命-1"
+    },
+    {
+      "name": "路边的花",
+      "summary": "路边开着一朵特别的花",
+      "regions": [
+        1
+      ],
+      "difficulty": 1,
+      "success_desc": "摘下了漂亮的花",
+      "success_reward": "经验+1",
+      "failure_desc": "花被风吹走了",
+      "failure_penalty": "无"
+    },
+    {
+      "name": "废弃小车",
+      "summary": "一辆坏掉的木头小车",
+      "regions": [
+        1
+      ],
+      "difficulty": 1,
+      "success_desc": "修好了小车玩了一会儿",
+      "success_reward": "经验+2",
+      "failure_desc": "小车散架了",
+      "failure_penalty": "无"
+    },
+    {
+      "name": "贪吃的松鼠",
+      "summary": "松鼠盯着你的干粮",
+      "regions": [
+        1
+      ],
+      "difficulty": 2,
+      "success_desc": "保护住了干粮",
+      "success_reward": "经验+2",
+      "failure_desc": "干粮被拿走一点",
+      "failure_penalty": "生命-2"
+    },
+    {
+      "name": "农夫的请求",
+      "summary": "农夫想请猫帮忙看田",
+      "regions": [
+        1
+      ],
+      "difficulty": 2,
+      "success_desc": "顺利完成任务",
+      "success_reward": "金币+4，经验+2",
+      "failure_desc": "没帮上忙",
+      "failure_penalty": "无"
+    },
+    {
+      "name": "野兔赛跑",
+      "summary": "野兔邀你比试脚力",
+      "regions": [
+        1
+      ],
+      "difficulty": 2,
+      "success_desc": "跑赢了野兔",
+      "success_reward": "经验+3",
+      "failure_desc": "输掉了比赛",
+      "failure_penalty": "无"
+    },
+    {
+      "name": "遗落的布袋",
+      "summary": "路边有个被遗落的布袋",
+      "regions": [
+        1
+      ],
+      "difficulty": 2,
+      "success_desc": "袋子里有点东西",
+      "success_reward": "金币+4，宝藏×1",
+      "failure_desc": "袋子是空的",
+      "failure_penalty": "无"
+    },
+    {
+      "name": "初遇史莱姆",
+      "summary": "软乎乎的史莱姆挡路",
+      "regions": [
+        1
+      ],
+      "difficulty": 2,
+      "success_desc": "打跑了史莱姆",
+      "success_reward": "经验+3，金币+2，宝藏×1",
+      "failure_desc": "被史莱姆撞了一下",
+      "failure_penalty": "生命-1"
+    },
+    {
+      "name": "野猫的赠礼",
+      "summary": "一只野猫叼着东西来",
+      "regions": [
+        1
+      ],
+      "difficulty": 2,
+      "success_desc": "收下了野猫的礼物",
+      "success_reward": "树果×1，经验+2",
+      "failure_desc": "野猫叼着东西跑了",
+      "failure_penalty": "无"
+    },
+    {
+      "name": "藏起来的坚果",
+      "summary": "松鼠藏坚果的地方被你发现",
+      "regions": [
+        1
+      ],
+      "difficulty": 2,
+      "success_desc": "找到一小堆坚果",
+      "success_reward": "树果×2",
+      "failure_desc": "只找到空壳",
+      "failure_penalty": "无"
+    },
+    {
+      "name": "小水塘的鱼",
+      "summary": "水塘里好像有鱼",
+      "regions": [
+        1
+      ],
+      "difficulty": 2,
+      "success_desc": "抓到了小鱼",
+      "success_reward": "经验+2，金币+2",
+      "failure_desc": "鱼溜走了",
+      "failure_penalty": "无"
+    },
+    {
+      "name": "夜光蘑菇",
+      "summary": "洞穴边长着会发光的蘑菇",
+      "regions": [
+        1
+      ],
+      "difficulty": 2,
+      "success_desc": "采到夜光蘑菇",
+      "success_reward": "金币+3，经验+2，蘑菇×1，宝藏×1",
+      "failure_desc": "蘑菇一碰就碎了",
+      "failure_penalty": "无"
+    },
+    {
+      "name": "守护的田鼠",
+      "summary": "田鼠拦住去路",
+      "regions": [
+        1
+      ],
+      "difficulty": 2,
+      "success_desc": "说服了田鼠让路",
+      "success_reward": "经验+2，宝藏×1",
+      "failure_desc": "被田鼠咬了一口",
+      "failure_penalty": "生命-1"
+    },
+    {
+      "name": "流浪商人的摊位",
+      "summary": "遇到一个卖杂货的商人",
+      "regions": [
+        1
+      ],
+      "difficulty": 2,
+      "success_desc": "淘到了便宜货",
+      "success_reward": "金币+5",
+      "failure_desc": "钱包被掏空了",
+      "failure_penalty": "金币-3"
+    },
+    {
+      "name": "三只小蝙蝠",
+      "summary": "傍晚几只小蝙蝠飞过",
+      "regions": [
+        1
+      ],
+      "difficulty": 3,
+      "success_desc": "赶跑了小蝙蝠",
+      "success_reward": "经验+4，金币+3，宝藏×1",
+      "failure_desc": "被蝙蝠撞到",
+      "failure_penalty": "生命-2"
+    },
+    {
+      "name": "误入蜂群",
+      "summary": "不小心靠近了蜂巢",
+      "regions": [
+        1
+      ],
+      "difficulty": 3,
+      "success_desc": "及时躲开了蜜蜂",
+      "success_reward": "经验+3",
+      "failure_desc": "被叮了几下",
+      "failure_penalty": "生命-2"
+    },
+    {
+      "name": "平原守护灵",
+      "summary": "温顺的灵物出现在麦田边",
+      "regions": [
+        1
+      ],
+      "difficulty": 3,
+      "success_desc": "得到灵物的祝福",
+      "success_reward": "经验+5，金币+3",
+      "failure_desc": "灵物消失了",
+      "failure_penalty": "无"
+    },
+    {
+      "name": "清晨露水",
+      "summary": "草叶上挂着清亮的露水",
+      "regions": [
+        1
+      ],
+      "difficulty": 1,
+      "success_desc": "发现了一株药草！",
+      "success_reward": "绿药草×1",
+      "failure_desc": "很凉爽喵！",
+      "failure_penalty": "无"
+    },
+    {
+      "name": "河边野餐",
+      "summary": "河边有人留下了一份野餐",
+      "regions": [
+        1,
+        2
+      ],
+      "difficulty": 1,
+      "success_desc": "找到了一块完好的面包！",
+      "success_reward": "面包×1，经验+2",
+      "failure_desc": "食物已经被水冲走了.../野餐篮是空的…",
+      "failure_penalty": "无"
+    },
+    {
+      "name": "旧木箱",
+      "summary": "路边有个落满灰的木箱",
+      "regions": [
+        1,
+        2
+      ],
+      "difficulty": 3,
+      "success_desc": "打开箱子有收获",
+      "success_reward": "金币+5，经验+2，宝藏×1",
+      "failure_desc": "箱子是空的",
+      "failure_penalty": "无"
+    },
+    {
+      "name": "抓偷偷鼠",
+      "summary": "偷偷鼠叼着闪亮的东西飞快跑过",
+      "regions": [
+        1,
+        2
+      ],
+      "difficulty": 4,
+      "success_desc": "坏蛋偷偷鼠，不准偷东西！",
+      "success_reward": "金币+3，经验+6，宝藏×1",
+      "failure_desc": "偷偷鼠钻进洞里逃跑了.../被偷偷鼠咬了一口…",
+      "failure_penalty": "生命-1"
+    },
+    {
+      "name": "揍小偷",
+      "summary": "小偷想偷走猫咪的探险物资",
+      "regions": [
+        1,
+        2
+      ],
+      "difficulty": 8,
+      "success_desc": "追上小偷并拿回了失物",
+      "success_reward": "金币+12，经验+7，宝藏×1",
+      "failure_desc": "小偷溜走了/被小偷反手推倒",
+      "failure_penalty": "生命-3"
+    },
+    {
+      "name": "开宝箱",
+      "summary": "发现了一只上锁的小宝箱",
+      "regions": [
+        1,
+        2
+      ],
+      "difficulty": 9,
+      "success_desc": "成功打开宝箱，里面装着金币和旧物",
+      "success_reward": "金币+20，经验+8，宝藏×1",
+      "failure_desc": "锁扣弹开划伤了爪子/宝箱里只有一堆碎石",
+      "failure_penalty": "生命-2"
+    },
+    {
+      "name": "挖宝藏",
+      "summary": "根据蛛丝马迹寻找埋藏的宝藏",
+      "regions": [
+        1,
+        2
+      ],
+      "difficulty": 10,
+      "success_desc": "挖到了一个藏有金币的旧盒子",
+      "success_reward": "金币+25，经验+10，宝藏×1",
+      "failure_desc": "挖了半天只挖到石头/坑边塌了一点",
+      "failure_penalty": "生命-2"
+    },
+    {
+      "name": "采蘑菇",
+      "summary": "雨后长出了不少蘑菇",
+      "regions": [
+        1,
+        2
+      ],
+      "difficulty": 1,
+      "success_desc": "采一些蘑菇回家！",
+      "success_reward": "树果×1，蘑菇×1，经验+1",
+      "failure_desc": "采到了不能吃的蘑菇…",
+      "failure_penalty": "无"
+    },
+    {
+      "name": "失落的旅人",
+      "summary": "一名旅人坐在树下休息",
+      "regions": [
+        1,
+        2,
+        3
+      ],
+      "difficulty": 1,
+      "success_desc": "旅人送给你一些谢礼！",
+      "success_reward": "宝藏×1，经验+5",
+      "failure_desc": "旅人的行囊里空空如也",
+      "failure_penalty": "无"
+    },
+    {
+      "name": "打史莱姆",
+      "summary": "软乎乎的史莱姆挡在路上",
+      "regions": [
+        1,
+        2,
+        3
+      ],
+      "difficulty": 5,
+      "success_desc": "打散史莱姆并找到它吞下的东西",
+      "success_reward": "金币+6，经验+5，宝藏×1",
+      "failure_desc": "被史莱姆弹开/史莱姆逃走时带走了东西",
+      "failure_penalty": "生命-2"
+    },
+    {
+      "name": "和野猫打架",
+      "summary": "护食的野猫拦住去路",
+      "regions": [
+        1,
+        2,
+        3
+      ],
+      "difficulty": 6,
+      "success_desc": "成功赶跑了野猫",
+      "success_reward": "金币+5，经验+6，宝藏×1",
+      "failure_desc": "被野猫抓花了脸/野猫叼着东西跑掉",
+      "failure_penalty": "生命-3"
+    },
+    {
+      "name": "草药天堂",
+      "summary": "林间空地长满了色彩鲜艳的草药",
+      "regions": [
+        2
+      ],
+      "difficulty": 2,
+      "success_desc": "采到了三种完整又新鲜的草药！",
+      "success_reward": "绿草药×2，黄草药×2，红草药×2",
+      "failure_desc": "草药被踩乱了.../只认出几株普通野草…",
+      "failure_penalty": "无"
+    },
+    {
+      "name": "林中树果",
+      "summary": "低语森林里挂着一串饱满的果子",
+      "regions": [
+        2
+      ],
+      "difficulty": 4,
+      "success_desc": "顺利摘下了果子",
+      "success_reward": "树果×2，经验+3",
+      "failure_desc": "树枝太高没够到",
+      "failure_penalty": "无"
+    },
+    {
+      "name": "松鼠的藏宝处",
+      "summary": "松鼠把食物藏在老树洞里",
+      "regions": [
+        2
+      ],
+      "difficulty": 4,
+      "success_desc": "找到了松鼠遗漏的口粮",
+      "success_reward": "树果×1，经验+4",
+      "failure_desc": "被松鼠发现了！",
+      "failure_penalty": "生命-1"
+    },
+    {
+      "name": "受伤的小鹿",
+      "summary": "一只小鹿躲在灌木后发抖",
+      "regions": [
+        2
+      ],
+      "difficulty": 4,
+      "success_desc": "帮小鹿处理了伤口",
+      "success_reward": "树果×1，经验+4",
+      "failure_desc": "小鹿受惊跑远了",
+      "failure_penalty": "无"
+    },
+    {
+      "name": "萤火虫引路",
+      "summary": "一群萤火虫在黑暗的树影中飞舞",
+      "regions": [
+        2
+      ],
+      "difficulty": 4,
+      "success_desc": "跟着萤火虫找到了安全的路",
+      "success_reward": "经验+4",
+      "failure_desc": "在林子中转了几圈",
+      "failure_penalty": "无"
+    },
+    {
+      "name": "月光蘑菇",
+      "summary": "树根旁长着泛着微光的蘑菇",
+      "regions": [
+        2
+      ],
+      "difficulty": 5,
+      "success_desc": "采到了完整的月光蘑菇",
+      "success_reward": "树果×2，蘑菇×1，经验+4",
+      "failure_desc": "蘑菇一碰就碎了",
+      "failure_penalty": "生命-1"
+    },
+    {
+      "name": "低语回声",
+      "summary": "森林深处传来若有若无的低语",
+      "regions": [
+        2
+      ],
+      "difficulty": 5,
+      "success_desc": "听懂了森林传来的提示",
+      "success_reward": "经验+10，宝藏×1",
+      "failure_desc": "被回声吓得迷了路",
+      "failure_penalty": "生命-1"
+    },
+    {
+      "name": "迷路的地精",
+      "summary": "一只小地精在树后探头探脑",
+      "regions": [
+        2
+      ],
+      "difficulty": 6,
+      "success_desc": "帮地精找到了回家的路",
+      "success_reward": "金币+6，经验+5",
+      "failure_desc": "被地精恶作剧了一下",
+      "failure_penalty": "生命-2"
+    },
+    {
+      "name": "藤蔓挡路",
+      "summary": "粗壮的藤蔓封住了前方的小径",
+      "regions": [
+        2
+      ],
+      "difficulty": 6,
+      "success_desc": "想办法穿过了藤蔓",
+      "success_reward": "经验+6",
+      "failure_desc": "被藤蔓绊了一跤",
+      "failure_penalty": "生命-2"
+    },
+    {
+      "name": "会走路的蘑菇",
+      "summary": "一朵蘑菇竟然从土里拔腿就跑",
+      "regions": [
+        2
+      ],
+      "difficulty": 6,
+      "success_desc": "追上了逃跑的蘑菇精",
+      "success_reward": "树果×2，蘑菇×1，经验+4，宝藏×1",
+      "failure_desc": "蘑菇钻进草丛不见了",
+      "failure_penalty": "蘑菇×1"
+    },
+    {
+      "name": "树冠追逐",
+      "summary": "松鼠在树冠间飞快地穿梭",
+      "regions": [
+        2
+      ],
+      "difficulty": 6,
+      "success_desc": "跟上松鼠完成了追逐",
+      "success_reward": "经验+6，兽肉×2",
+      "failure_desc": "从树杈上滑了下来",
+      "failure_penalty": "生命-1"
+    },
+    {
+      "name": "雾中鸟群",
+      "summary": "清晨的雾气中传来密集鸟鸣",
+      "regions": [
+        2
+      ],
+      "difficulty": 6,
+      "success_desc": "在雾里捕获了鸟类",
+      "success_reward": "禽肉×2，经验+8",
+      "failure_desc": "鸟群消失在雾中/被树枝划伤",
+      "failure_penalty": "生命-2"
+    },
+    {
+      "name": "古树洞",
+      "summary": "巨大的古树有一个深不见底的洞口",
+      "regions": [
+        2
+      ],
+      "difficulty": 7,
+      "success_desc": "在树洞里发现了几枚旧币",
+      "success_reward": "金币+10，经验+5，宝藏×2",
+      "failure_desc": "被洞里的藤蔓缠住",
+      "failure_penalty": "生命-2"
+    },
+    {
+      "name": "猎人的补给",
+      "summary": "树桩上放着被遗落的补给袋",
+      "regions": [
+        2
+      ],
+      "difficulty": 7,
+      "success_desc": "找到了一些完好的食物",
+      "success_reward": "面包×2，金币+3",
+      "failure_desc": "补给已经受潮发霉",
+      "failure_penalty": "面包-1"
+    },
+    {
+      "name": "小狼崽",
+      "summary": "一只小狼崽好奇地靠近你",
+      "regions": [
+        2
+      ],
+      "difficulty": 7,
+      "success_desc": "和小狼崽顺利玩耍",
+      "success_reward": "经验+6，兽肉×1",
+      "failure_desc": "被小狼崽咬了一口",
+      "failure_penalty": "生命-2"
+    },
+    {
+      "name": "钻遗址",
+      "summary": "钻进废弃建筑的缝隙探索",
+      "regions": [
+        2
+      ],
+      "difficulty": 7,
+      "success_desc": "在角落发现了一处藏品",
+      "success_reward": "金币+8，经验+6，宝藏×1",
+      "failure_desc": "灰头土脸地爬出来/被碎石绊了一跤",
+      "failure_penalty": "生命-2"
+    },
+    {
+      "name": "荧光蘑菇圈",
+      "summary": "林间空地长着一圈发光蘑菇",
+      "regions": [
+        2
+      ],
+      "difficulty": 7,
+      "success_desc": "采到了一批荧光蘑菇",
+      "success_reward": "蘑菇×2，经验+8",
+      "failure_desc": "蘑菇孢子迷了眼/蘑菇迅速枯萎",
+      "failure_penalty": "生命-2"
+    },
+    {
+      "name": "悬在树梢的鸟巢",
+      "summary": "高大的树梢上挂着鸟巢",
+      "regions": [
+        2
+      ],
+      "difficulty": 7,
+      "success_desc": "爬上树梢拿到了禽肉",
+      "success_reward": "禽肉×2，金币+6，经验+8",
+      "failure_desc": "从树枝滑落/鸟巢被风吹走",
+      "failure_penalty": "生命-2"
+    },
+    {
+      "name": "树洞储粮",
+      "summary": "老树洞里藏着一批过冬食物",
+      "regions": [
+        2
+      ],
+      "difficulty": 7,
+      "success_desc": "找到了面包和蘑菇",
+      "success_reward": "蘑菇×1，面包×2，经验+8",
+      "failure_desc": "树洞被堵住/食物发霉",
+      "failure_penalty": "面包-1"
+    },
+    {
+      "name": "夜枭的凝视",
+      "summary": "一只夜枭停在枝头盯着你",
+      "regions": [
+        2
+      ],
+      "difficulty": 8,
+      "success_desc": "和夜枭对视后安全离开",
+      "success_reward": "经验+7，金币+4，禽肉×1",
+      "failure_desc": "被夜枭俯冲吓了一跳",
+      "failure_penalty": "生命-3"
+    },
+    {
+      "name": "古老石碑",
+      "summary": "斑驳的石碑上刻着模糊的文字",
+      "regions": [
+        2
+      ],
+      "difficulty": 8,
+      "success_desc": "读懂了石碑上的古老记录",
+      "success_reward": "经验+15",
+      "failure_desc": "石碑上的文字突然消失了",
+      "failure_penalty": "生命-2"
+    },
+    {
+      "name": "狼群的猎物",
+      "summary": "狼群把猎物留在岩石后",
+      "regions": [
+        2
+      ],
+      "difficulty": 8,
+      "success_desc": "成功拿到了一块兽肉",
+      "success_reward": "兽肉×2，经验+10",
+      "failure_desc": "狼群回来了/被岩石擦伤",
+      "failure_penalty": "生命-3"
+    },
+    {
+      "name": "月影鹿群",
+      "summary": "月光下鹿群从林间经过",
+      "regions": [
+        2
+      ],
+      "difficulty": 8,
+      "success_desc": "在鹿群离开后找到了兽肉",
+      "success_reward": "兽肉×2，金币+5，经验+10",
+      "failure_desc": "鹿群受惊逃跑/被鹿角擦伤",
+      "failure_penalty": "生命-2"
+    },
+    {
+      "name": "毒蘑菇丛",
+      "summary": "颜色鲜艳的蘑菇遍布腐木",
+      "regions": [
+        2
+      ],
+      "difficulty": 8,
+      "success_desc": "辨认并采下了安全蘑菇",
+      "success_reward": "蘑菇×2，经验+9",
+      "failure_desc": "误碰毒蘑菇/孢子沾到伤口",
+      "failure_penalty": "生命-3"
+    },
+    {
+      "name": "树冠闪光",
+      "summary": "树冠深处不断传来金属反光",
+      "regions": [
+        2
+      ],
+      "difficulty": 8,
+      "success_desc": "找到了藏在枝叶间的小宝藏",
+      "success_reward": "宝藏×1，经验+10",
+      "failure_desc": "枝条断裂/宝藏掉进树洞",
+      "failure_penalty": "生命-2"
+    },
+    {
+      "name": "猎人营地",
+      "summary": "一处被遗弃的猎人营地仍有补给",
+      "regions": [
+        2
+      ],
+      "difficulty": 8,
+      "success_desc": "搜到了补给和兽肉",
+      "success_reward": "面包×2，兽肉×1，经验+10",
+      "failure_desc": "补给已经腐烂/陷阱突然启动",
+      "failure_penalty": "生命-2"
+    },
+    {
+      "name": "古树菌群",
+      "summary": "古老树干上长满了稀有菌菇",
+      "regions": [
+        2
+      ],
+      "difficulty": 8,
+      "success_desc": "完整采下了古树菌菇",
+      "success_reward": "蘑菇×5，经验+10",
+      "failure_desc": "树皮突然断裂/菌菇被虫蛀空",
+      "failure_penalty": "生命-2"
+    },
+    {
+      "name": "溪流宝箱",
+      "summary": "溪水中央露出一只旧木箱",
+      "regions": [
+        2
+      ],
+      "difficulty": 9,
+      "success_desc": "捞起木箱并打开了它",
+      "success_reward": "金币+12，经验+10，宝藏×2",
+      "failure_desc": "木箱顺着水流漂走了",
+      "failure_penalty": "生命-2"
+    },
+    {
+      "name": "月光湖",
+      "summary": "林间湖泊倒映着明亮的月光",
+      "regions": [
+        2
+      ],
+      "difficulty": 9,
+      "success_desc": "在湖边发现了闪闪发光的东西",
+      "success_reward": "金币+10，经验+7，宝藏×1",
+      "failure_desc": "在湖边滑了一跤",
+      "failure_penalty": "生命-2"
+    },
+    {
+      "name": "野猪林",
+      "summary": "灌木丛后传来野猪的哼声",
+      "regions": [
+        2
+      ],
+      "difficulty": 9,
+      "success_desc": "赶走野猪并取得猎物",
+      "success_reward": "兽肉×2，经验+12",
+      "failure_desc": "被野猪撞开/猎物被拖走",
+      "failure_penalty": "生命-3"
+    },
+    {
+      "name": "林地猎手",
+      "summary": "经验丰富的猎手在林中设下陷阱",
+      "regions": [
+        2
+      ],
+      "difficulty": 9,
+      "success_desc": "绕过陷阱并取得了猎物",
+      "success_reward": "兽肉×2，金币+8，经验+11",
+      "failure_desc": "踩中陷阱/猎物被猎手带走",
+      "failure_penalty": "生命-3"
+    },
+    {
+      "name": "蘑菇守护者",
+      "summary": "一只林地精怪守护着蘑菇群",
+      "regions": [
+        2
+      ],
+      "difficulty": 9,
+      "success_desc": "通过考验并得到蘑菇",
+      "success_reward": "蘑菇×2，金币+8，经验+11",
+      "failure_desc": "被精怪捉弄/蘑菇被抢走",
+      "failure_penalty": "生命-3"
+    },
+    {
+      "name": "低语鸟群",
+      "summary": "鸟群在树影间不断低语",
+      "regions": [
+        2
+      ],
+      "difficulty": 9,
+      "success_desc": "听懂了鸟群的提示并捕获猎物",
+      "success_reward": "禽肉×2，经验+11",
+      "failure_desc": "被鸟群引向迷路/被啄伤",
+      "failure_penalty": "生命-3"
+    },
+    {
+      "name": "史莱姆群",
+      "summary": "几只软乎乎的史莱姆挡在路上",
+      "regions": [
+        2
+      ],
+      "difficulty": 10,
+      "success_desc": "成功赶跑了史莱姆",
+      "success_reward": "金币+10，经验+10，宝藏×3",
+      "failure_desc": "被史莱姆撞得东倒西歪",
+      "failure_penalty": "生命-4"
+    },
+    {
+      "name": "森林精灵的考验",
+      "summary": "森林精灵从树影中现身",
+      "regions": [
+        2
+      ],
+      "difficulty": 10,
+      "success_desc": "通过了精灵设下的考验",
+      "success_reward": "宝藏×4，经验+8",
+      "failure_desc": "没能完成精灵的考验",
+      "failure_penalty": "生命-3"
+    },
+    {
+      "name": "巨鸟巢穴",
+      "summary": "悬崖边的巨鸟巢里传来雏鸟叫声",
+      "regions": [
+        2
+      ],
+      "difficulty": 10,
+      "success_desc": "避开巨鸟取得丰富禽肉",
+      "success_reward": "禽肉×3，金币+10，经验+12",
+      "failure_desc": "被巨鸟啄伤/从岩壁滑落",
+      "failure_penalty": "生命-3"
+    },
+    {
+      "name": "夜行猛禽",
+      "summary": "巨大的猛禽在夜色中盘旋",
+      "regions": [
+        2
+      ],
+      "difficulty": 10,
+      "success_desc": "趁猛禽离开取得猎物",
+      "success_reward": "禽肉×2，金币+10，经验+10，宝藏×1",
+      "failure_desc": "被猛禽抓伤/猎物被抢走",
+      "failure_penalty": "生命-3"
+    },
+    {
+      "name": "森林猎场",
+      "summary": "大型野兽在林中留下了猎物",
+      "regions": [
+        2
+      ],
+      "difficulty": 10,
+      "success_desc": "成功找到了留下的兽肉",
+      "success_reward": "兽肉×2，金币+12，经验+13",
+      "failure_desc": "野兽折返/被荆棘缠住",
+      "failure_penalty": "生命-3"
+    },
+    {
+      "name": "野猪王的踪迹",
+      "summary": "泥地里留着巨大野猪的脚印",
+      "regions": [
+        2
+      ],
+      "difficulty": 11,
+      "success_desc": "追踪成功并取得大量兽肉",
+      "success_reward": "兽肉×10，金币+12，经验+15",
+      "failure_desc": "脚印被雨水冲掉/遭遇野猪王",
+      "failure_penalty": "生命-4"
+    },
+    {
+      "name": "解开森林谜题/挑战",
+      "summary": "森林里出现了一道谜题或试炼",
+      "regions": [
+        2
+      ],
+      "difficulty": 12,
+      "success_desc": "解开了谜题并完成挑战",
+      "success_reward": "金币+30，经验+15",
+      "failure_desc": "被机关吓退/挑战失败后迷了路",
+      "failure_penalty": "生命-3"
+    },
+    {
+      "name": "风暴鸟巢",
+      "summary": "雷雨前的鸟巢被狂风吹得摇晃",
+      "regions": [
+        2
+      ],
+      "difficulty": 12,
+      "success_desc": "在风暴中救下鸟巢和猎物",
+      "success_reward": "禽肉×3，金币+15，经验+18",
+      "failure_desc": "鸟巢坠落/被闪电惊吓摔伤",
+      "failure_penalty": "生命-4"
+    },
+    {
+      "name": "森林深处的盛宴",
+      "summary": "一片隐秘林地里堆满猎物与菌菇",
+      "regions": [
+        2
+      ],
+      "difficulty": 12,
+      "success_desc": "带回了丰富的森林食材",
+      "success_reward": "兽肉×2，禽肉×2，蘑菇×2，金币+18，经验+20",
+      "failure_desc": "附近野兽被气味吸引/掉进深坑",
+      "failure_penalty": "生命-5"
+    },
+    {
+      "name": "岩鼠的储藏",
+      "summary": "岩鼠在洞中藏了不少东西",
+      "regions": [
+        3
+      ],
+      "difficulty": 9,
+      "success_desc": "找到了被遗落的宝藏",
+      "success_reward": "金币+10，经验+15，宝藏×1",
+      "failure_desc": "被岩鼠群赶走",
+      "failure_penalty": "生命-2"
+    },
+    {
+      "name": "岩缝中的微光",
+      "summary": "岩缝深处闪着一道光",
+      "regions": [
+        3
+      ],
+      "difficulty": 10,
+      "success_desc": "找到藏在岩石后的宝物",
+      "success_reward": "金币+15，经验+15，宝藏×1",
+      "failure_desc": "岩缝突然塌落",
+      "failure_penalty": "生命-3"
+    },
+    {
+      "name": "废弃矿车",
+      "summary": "谷底停着一辆生锈的矿车",
+      "regions": [
+        3
+      ],
+      "difficulty": 10,
+      "success_desc": "从矿车里翻出有用物资",
+      "success_reward": "金币+12，面包×2，经验+14",
+      "failure_desc": "矿车滚下斜坡",
+      "failure_penalty": "生命-4"
+    },
+    {
+      "name": "灰石小径",
+      "summary": "碎石坡上隐约有一条小路",
+      "regions": [
+        3
+      ],
+      "difficulty": 11,
+      "success_desc": "顺利穿过碎石坡",
+      "success_reward": "金币+18，经验+16，宝藏×1",
+      "failure_desc": "被落石挡住去路",
+      "failure_penalty": "生命-3"
+    },
+    {
+      "name": "风蚀石柱",
+      "summary": "高耸的石柱被风吹得嗡嗡作响",
+      "regions": [
+        3
+      ],
+      "difficulty": 11,
+      "success_desc": "在石柱下找到遗落物",
+      "success_reward": "金币+20，经验+16，宝藏×1",
+      "failure_desc": "被风沙迷住眼睛",
+      "failure_penalty": "生命-3"
+    },
+    {
+      "name": "山谷回响",
+      "summary": "灰石谷深处传来低沉的吼声",
+      "regions": [
+        3
+      ],
+      "difficulty": 12,
+      "success_desc": "屏住呼吸安全通过",
+      "success_reward": "经验+18",
+      "failure_desc": "被吼声震慑",
+      "failure_penalty": "生命-4"
+    },
+    {
+      "name": "迷雾石林",
+      "summary": "石柱间弥漫着灰白迷雾",
+      "regions": [
+        3
+      ],
+      "difficulty": 12,
+      "success_desc": "穿过迷雾并发现宝藏",
+      "success_reward": "金币+18，经验+20，宝藏×1",
+      "failure_desc": "在石林中迷路",
+      "failure_penalty": "生命-4"
+    },
+    {
+      "name": "水晶矿脉",
+      "summary": "岩壁上露出细小的水晶",
+      "regions": [
+        3
+      ],
+      "difficulty": 12,
+      "success_desc": "采到了一小袋水晶碎屑",
+      "success_reward": "金币+28，经验+18",
+      "failure_desc": "矿脉突然碎裂",
+      "failure_penalty": "生命-4"
+    },
+    {
+      "name": "灰羽猛禽",
+      "summary": "一只灰羽猛禽在头顶盘旋",
+      "regions": [
+        3
+      ],
+      "difficulty": 13,
+      "success_desc": "避开猛禽并取得了猎物",
+      "success_reward": "禽肉×3，金币+20，经验+20",
+      "failure_desc": "被猛禽抓伤",
+      "failure_penalty": "生命-5"
+    },
+    {
+      "name": "地脉震动",
+      "summary": "脚下的石块开始剧烈震动",
+      "regions": [
+        3
+      ],
+      "difficulty": 13,
+      "success_desc": "在震动中找到了宝藏",
+      "success_reward": "金币+25，经验+20，宝藏×1",
+      "failure_desc": "被碎石砸伤",
+      "failure_penalty": "生命-5"
+    },
+    {
+      "name": "灰石宝箱",
+      "summary": "乱石堆中露出半只旧宝箱",
+      "regions": [
+        3
+      ],
+      "difficulty": 13,
+      "success_desc": "打开宝箱并安全离开",
+      "success_reward": "金币+25，经验+22，宝藏×2",
+      "failure_desc": "宝箱其实是怪物陷阱",
+      "failure_penalty": "生命-5"
+    },
+    {
+      "name": "古老祭坛",
+      "summary": "山谷中央有座布满灰尘的祭坛",
+      "regions": [
+        3
+      ],
+      "difficulty": 14,
+      "success_desc": "解开祭坛谜题",
+      "success_reward": "金币+30，经验+25，宝藏×1",
+      "failure_desc": "祭坛机关启动",
+      "failure_penalty": "生命-6"
+    }
+  ],
+  "treasures": [
+    {
+      "name": "旧袜子",
+      "qualities": [
+        1,
+        2
+      ],
+      "regions": [
+        1
+      ],
+      "base_value": 1
+    },
+    {
+      "name": "罐头拉环",
+      "qualities": [
+        1,
+        2
+      ],
+      "regions": [
+        1
+      ],
+      "base_value": 1
+    },
+    {
+      "name": "苹果核",
+      "qualities": [
+        1,
+        2
+      ],
+      "regions": [
+        1,
+        2
+      ],
+      "base_value": 1
+    },
+    {
+      "name": "纸团",
+      "qualities": [
+        1,
+        2
+      ],
+      "regions": [
+        1
+      ],
+      "base_value": 1
+    },
+    {
+      "name": "弯曲的铁丝",
+      "qualities": [
+        1,
+        2
+      ],
+      "regions": [
+        1
+      ],
+      "base_value": 2
+    },
+    {
+      "name": "纸箱",
+      "qualities": [
+        1,
+        2
+      ],
+      "regions": [
+        1,
+        2
+      ],
+      "base_value": 3
+    },
+    {
+      "name": "湿纸巾",
+      "qualities": [
+        1,
+        2
+      ],
+      "regions": [
+        1
+      ],
+      "base_value": 2
+    },
+    {
+      "name": "落满灰的瓶盖",
+      "qualities": [
+        1,
+        2
+      ],
+      "regions": [
+        1
+      ],
+      "base_value": 2
+    },
+    {
+      "name": "烂拖鞋",
+      "qualities": [
+        1,
+        2
+      ],
+      "regions": [
+        1,
+        2
+      ],
+      "base_value": 3
+    },
+    {
+      "name": "树枝",
+      "qualities": [
+        1,
+        2
+      ],
+      "regions": [
+        2,
+        3
+      ],
+      "base_value": 3
+    },
+    {
+      "name": "歪歪扭扭的泥巴团",
+      "qualities": [
+        1,
+        2
+      ],
+      "regions": [
+        2
+      ],
+      "base_value": 3
+    },
+    {
+      "name": "烂绳头",
+      "qualities": [
+        1,
+        2
+      ],
+      "regions": [
+        1,
+        2
+      ],
+      "base_value": 3
+    },
+    {
+      "name": "半块小饼干",
+      "qualities": [
+        1,
+        2
+      ],
+      "regions": [
+        1,
+        2
+      ],
+      "base_value": 4
+    },
+    {
+      "name": "破布",
+      "qualities": [
+        1,
+        2
+      ],
+      "regions": [
+        1,
+        2,
+        3
+      ],
+      "base_value": 4
+    },
+    {
+      "name": "缺口木盆",
+      "qualities": [
+        1,
+        2
+      ],
+      "regions": [
+        1,
+        2,
+        3
+      ],
+      "base_value": 5
+    },
+    {
+      "name": "碎玻璃瓶",
+      "qualities": [
+        1,
+        2
+      ],
+      "regions": [
+        1,
+        2,
+        3
+      ],
+      "base_value": 5
+    },
+    {
+      "name": "半截笔",
+      "qualities": [
+        1,
+        2
+      ],
+      "regions": [
+        1,
+        2
+      ],
+      "base_value": 5
+    },
+    {
+      "name": "磨破的麻袋",
+      "qualities": [
+        1,
+        2
+      ],
+      "regions": [
+        1,
+        2,
+        3
+      ],
+      "base_value": 5
+    },
+    {
+      "name": "长毛的面包块",
+      "qualities": [
+        1,
+        2
+      ],
+      "regions": [
+        1,
+        2,
+        3
+      ],
+      "base_value": 5
+    },
+    {
+      "name": "灰扑扑的鹅卵石",
+      "qualities": [
+        1,
+        2
+      ],
+      "regions": [
+        2,
+        3
+      ],
+      "base_value": 5
+    },
+    {
+      "name": "螺丝钉",
+      "qualities": [
+        1,
+        2
+      ],
+      "regions": [
+        1,
+        2,
+        3
+      ],
+      "base_value": 5
+    },
+    {
+      "name": "纽扣",
+      "qualities": [
+        1,
+        2
+      ],
+      "regions": [
+        1,
+        2,
+        3
+      ],
+      "base_value": 5
+    },
+    {
+      "name": "空罐头",
+      "qualities": [
+        1,
+        2
+      ],
+      "regions": [
+        1,
+        2,
+        3
+      ],
+      "base_value": 6
+    },
+    {
+      "name": "猫砂块",
+      "qualities": [
+        1,
+        2
+      ],
+      "regions": [
+        1,
+        2,
+        3
+      ],
+      "base_value": 5
+    },
+    {
+      "name": "完好瓶盖",
+      "qualities": [
+        1,
+        2
+      ],
+      "regions": [
+        1,
+        2,
+        3
+      ],
+      "base_value": 6
+    },
+    {
+      "name": "一张扑克牌",
+      "qualities": [
+        1,
+        2
+      ],
+      "regions": [
+        1,
+        2,
+        3
+      ],
+      "base_value": 5
+    },
+    {
+      "name": "铁丝",
+      "qualities": [
+        1,
+        2
+      ],
+      "regions": [
+        1,
+        2,
+        3
+      ],
+      "base_value": 5
+    },
+    {
+      "name": "塑料袋",
+      "qualities": [
+        1,
+        2
+      ],
+      "regions": [
+        1,
+        2,
+        3
+      ],
+      "base_value": 5
+    },
+    {
+      "name": "糖纸",
+      "qualities": [
+        1,
+        2
+      ],
+      "regions": [
+        1,
+        2,
+        3
+      ],
+      "base_value": 5
+    },
+    {
+      "name": "羽毛",
+      "qualities": [
+        1,
+        2,
+        3,
+        4
+      ],
+      "regions": [
+        1,
+        2,
+        3
+      ],
+      "base_value": 5
+    },
+    {
+      "name": "缺页的旧杂志",
+      "qualities": [
+        1,
+        2
+      ],
+      "regions": [
+        1,
+        2,
+        3
+      ],
+      "base_value": 6
+    },
+    {
+      "name": "用胶带缠的假骨头",
+      "qualities": [
+        1,
+        2
+      ],
+      "regions": [
+        1,
+        2,
+        3
+      ],
+      "base_value": 6
+    },
+    {
+      "name": "铜质纽扣",
+      "qualities": [
+        1,
+        2
+      ],
+      "regions": [
+        1,
+        2,
+        3
+      ],
+      "base_value": 6
+    },
+    {
+      "name": "大树枝",
+      "qualities": [
+        1,
+        2
+      ],
+      "regions": [
+        1,
+        2,
+        3
+      ],
+      "base_value": 6
+    },
+    {
+      "name": "旧毛线球",
+      "qualities": [
+        1,
+        2
+      ],
+      "regions": [
+        1,
+        2,
+        3
+      ],
+      "base_value": 6
+    },
+    {
+      "name": "塑料假鱼",
+      "qualities": [
+        1,
+        2
+      ],
+      "regions": [
+        1,
+        2,
+        3
+      ],
+      "base_value": 7
+    },
+    {
+      "name": "带跳蚤的旧项圈",
+      "qualities": [
+        1,
+        2
+      ],
+      "regions": [
+        1,
+        2,
+        3
+      ],
+      "base_value": 7
+    },
+    {
+      "name": "黑石头",
+      "qualities": [
+        1,
+        2
+      ],
+      "regions": [
+        1,
+        2,
+        3
+      ],
+      "base_value": 7
+    },
+    {
+      "name": "破洞钱包",
+      "qualities": [
+        1,
+        2
+      ],
+      "regions": [
+        1,
+        2,
+        3
+      ],
+      "base_value": 8
+    },
+    {
+      "name": "黯淡的塑料珠子",
+      "qualities": [
+        1,
+        2
+      ],
+      "regions": [
+        1,
+        2,
+        3
+      ],
+      "base_value": 8
+    },
+    {
+      "name": "河边贝壳",
+      "qualities": [
+        1,
+        2
+      ],
+      "regions": [
+        1,
+        2,
+        3
+      ],
+      "base_value": 8
+    },
+    {
+      "name": "小拖鞋",
+      "qualities": [
+        1,
+        2
+      ],
+      "regions": [
+        1,
+        2,
+        3
+      ],
+      "base_value": 8
+    },
+    {
+      "name": "脏兮兮日报",
+      "qualities": [
+        1,
+        2,
+        3
+      ],
+      "regions": [
+        1,
+        2,
+        3
+      ],
+      "base_value": 9
+    },
+    {
+      "name": "旧铜币",
+      "qualities": [
+        1,
+        2
+      ],
+      "regions": [
+        1,
+        2,
+        3
+      ],
+      "base_value": 10
+    },
+    {
+      "name": "塑料老鼠",
+      "qualities": [
+        1,
+        2
+      ],
+      "regions": [
+        1,
+        2,
+        3
+      ],
+      "base_value": 10
+    },
+    {
+      "name": "小鱼干",
+      "qualities": [
+        1,
+        2
+      ],
+      "regions": [
+        1,
+        2,
+        3
+      ],
+      "base_value": 10
+    },
+    {
+      "name": "鸟蛋",
+      "qualities": [
+        1,
+        2
+      ],
+      "regions": [
+        1,
+        2,
+        3
+      ],
+      "base_value": 10
+    },
+    {
+      "name": "碎玻璃瓶",
+      "qualities": [
+        1,
+        2
+      ],
+      "regions": [
+        1,
+        2,
+        3
+      ],
+      "base_value": 10
+    },
+    {
+      "name": "小袜子",
+      "qualities": [
+        1,
+        2
+      ],
+      "regions": [
+        1,
+        2,
+        3
+      ],
+      "base_value": 10
+    },
+    {
+      "name": "贝壳",
+      "qualities": [
+        1,
+        2
+      ],
+      "regions": [
+        1,
+        2,
+        3
+      ],
+      "base_value": 10
+    },
+    {
+      "name": "松果",
+      "qualities": [
+        1,
+        2
+      ],
+      "regions": [
+        1,
+        2,
+        3
+      ],
+      "base_value": 10
+    },
+    {
+      "name": "猫粮包装袋",
+      "qualities": [
+        1,
+        2
+      ],
+      "regions": [
+        1,
+        2,
+        3
+      ],
+      "base_value": 10
+    },
+    {
+      "name": "纸飞机",
+      "qualities": [
+        1,
+        2,
+        3
+      ],
+      "regions": [
+        1,
+        2,
+        3
+      ],
+      "base_value": 10
+    },
+    {
+      "name": "塑料盒",
+      "qualities": [
+        1,
+        2,
+        3
+      ],
+      "regions": [
+        1,
+        2,
+        3
+      ],
+      "base_value": 10
+    },
+    {
+      "name": "破损木雕",
+      "qualities": [
+        1,
+        2
+      ],
+      "regions": [
+        1,
+        2,
+        3
+      ],
+      "base_value": 11
+    },
+    {
+      "name": "烟盒",
+      "qualities": [
+        1,
+        2
+      ],
+      "regions": [
+        1,
+        2,
+        3
+      ],
+      "base_value": 11
+    },
+    {
+      "name": "旧邮票",
+      "qualities": [
+        1,
+        2
+      ],
+      "regions": [
+        1,
+        2,
+        3
+      ],
+      "base_value": 12
+    },
+    {
+      "name": "旧杂志",
+      "qualities": [
+        1,
+        2
+      ],
+      "regions": [
+        1,
+        2,
+        3
+      ],
+      "base_value": 12
+    },
+    {
+      "name": "旧项圈",
+      "qualities": [
+        1,
+        2
+      ],
+      "regions": [
+        1,
+        2,
+        3
+      ],
+      "base_value": 14
+    },
+    {
+      "name": "老鼠毛偶⭐",
+      "qualities": [
+        1,
+        2
+      ],
+      "regions": [
+        1,
+        2,
+        3
+      ],
+      "base_value": 15
+    },
+    {
+      "name": "鸡毛偶⭐",
+      "qualities": [
+        1,
+        2
+      ],
+      "regions": [
+        1,
+        2,
+        3
+      ],
+      "base_value": 15
+    },
+    {
+      "name": "旧铁币",
+      "qualities": [
+        1,
+        2
+      ],
+      "regions": [
+        1,
+        2,
+        3
+      ],
+      "base_value": 15
+    },
+    {
+      "name": "钥匙",
+      "qualities": [
+        1,
+        2,
+        3
+      ],
+      "regions": [
+        1,
+        2,
+        3
+      ],
+      "base_value": 15
+    },
+    {
+      "name": "旧日报",
+      "qualities": [
+        1,
+        2
+      ],
+      "regions": [
+        1,
+        2,
+        3
+      ],
+      "base_value": 15
+    },
+    {
+      "name": "剪刀",
+      "qualities": [
+        1,
+        2,
+        3
+      ],
+      "regions": [
+        1,
+        2,
+        3
+      ],
+      "base_value": 15
+    },
+    {
+      "name": "指甲锉",
+      "qualities": [
+        1,
+        2,
+        3
+      ],
+      "regions": [
+        1,
+        2,
+        3
+      ],
+      "base_value": 15
+    },
+    {
+      "name": "鹅卵石",
+      "qualities": [
+        1,
+        2,
+        3
+      ],
+      "regions": [
+        1,
+        2,
+        3
+      ],
+      "base_value": 15
+    },
+    {
+      "name": "塑料小鱼",
+      "qualities": [
+        1,
+        2
+      ],
+      "regions": [
+        1,
+        2,
+        3
+      ],
+      "base_value": 15
+    },
+    {
+      "name": "棉线团",
+      "qualities": [
+        1,
+        2
+      ],
+      "regions": [
+        1,
+        2,
+        3
+      ],
+      "base_value": 15
+    },
+    {
+      "name": "草编戒指",
+      "qualities": [
+        1,
+        2
+      ],
+      "regions": [
+        1,
+        2,
+        3
+      ],
+      "base_value": 15
+    },
+    {
+      "name": "猎人小刀",
+      "qualities": [
+        2,
+        3
+      ],
+      "regions": [
+        1,
+        2,
+        3
+      ],
+      "base_value": 15
+    },
+    {
+      "name": "银质护符",
+      "qualities": [
+        2,
+        3
+      ],
+      "regions": [
+        1,
+        2,
+        3
+      ],
+      "base_value": 15
+    },
+    {
+      "name": "木块",
+      "qualities": [
+        1,
+        2
+      ],
+      "regions": [
+        1,
+        2,
+        3
+      ],
+      "base_value": 16
+    },
+    {
+      "name": "塑料玩具",
+      "qualities": [
+        1,
+        2
+      ],
+      "regions": [
+        1,
+        2,
+        3
+      ],
+      "base_value": 16
+    },
+    {
+      "name": "森林徽章",
+      "qualities": [
+        2,
+        3
+      ],
+      "regions": [
+        1,
+        2,
+        3
+      ],
+      "base_value": 16
+    },
+    {
+      "name": "逗猫棒",
+      "qualities": [
+        1,
+        2,
+        3
+      ],
+      "regions": [
+        1,
+        2,
+        3
+      ],
+      "base_value": 20
+    },
+    {
+      "name": "猫薄荷叶",
+      "qualities": [
+        1,
+        2,
+        3
+      ],
+      "regions": [
+        2,
+        3
+      ],
+      "base_value": 20
+    },
+    {
+      "name": "完整的玻璃弹珠",
+      "qualities": [
+        2,
+        3
+      ],
+      "regions": [
+        1,
+        2,
+        3
+      ],
+      "base_value": 20
+    },
+    {
+      "name": "铃铛",
+      "qualities": [
+        2,
+        3
+      ],
+      "regions": [
+        1,
+        2,
+        3
+      ],
+      "base_value": 20
+    },
+    {
+      "name": "月光草",
+      "qualities": [
+        2,
+        3
+      ],
+      "regions": [
+        2,
+        3
+      ],
+      "base_value": 20
+    },
+    {
+      "name": "橡胶球",
+      "qualities": [
+        1,
+        2,
+        3
+      ],
+      "regions": [
+        2,
+        3
+      ],
+      "base_value": 20
+    },
+    {
+      "name": "肉干",
+      "qualities": [
+        1,
+        2,
+        3
+      ],
+      "regions": [
+        2,
+        3
+      ],
+      "base_value": 20
+    },
+    {
+      "name": "陶土碗",
+      "qualities": [
+        1,
+        2,
+        3
+      ],
+      "regions": [
+        1,
+        2,
+        3
+      ],
+      "base_value": 21
+    },
+    {
+      "name": "猫薄荷球",
+      "qualities": [
+        1,
+        2,
+        3
+      ],
+      "regions": [
+        1,
+        2,
+        3
+      ],
+      "base_value": 23
+    },
+    {
+      "name": "宠物铭牌",
+      "qualities": [
+        1,
+        2,
+        3
+      ],
+      "regions": [
+        1,
+        2,
+        3
+      ],
+      "base_value": 25
+    },
+    {
+      "name": "扑克牌",
+      "qualities": [
+        2
+      ],
+      "regions": [
+        2,
+        3
+      ],
+      "base_value": 25
+    },
+    {
+      "name": "邮票",
+      "qualities": [
+        2,
+        3
+      ],
+      "regions": [
+        2,
+        3
+      ],
+      "base_value": 30
+    },
+    {
+      "name": "宝箱钥匙",
+      "qualities": [
+        1,
+        2,
+        3,
+        4
+      ],
+      "regions": [
+        2,
+        3
+      ],
+      "base_value": 30
+    },
+    {
+      "name": "刀片",
+      "qualities": [
+        2,
+        3
+      ],
+      "regions": [
+        2,
+        3
+      ],
+      "base_value": 30
+    },
+    {
+      "name": "银铃铛",
+      "qualities": [
+        3
+      ],
+      "regions": [
+        2,
+        3
+      ],
+      "base_value": 32
+    },
+    {
+      "name": "逗猫羽毛",
+      "qualities": [
+        2,
+        3
+      ],
+      "regions": [
+        2,
+        3
+      ],
+      "base_value": 40
+    },
+    {
+      "name": "帆布包",
+      "qualities": [
+        2,
+        3
+      ],
+      "regions": [
+        2,
+        3
+      ],
+      "base_value": 40
+    },
+    {
+      "name": "玉石",
+      "qualities": [
+        1,
+        2,
+        3,
+        4,
+        5
+      ],
+      "regions": [
+        2,
+        3
+      ],
+      "base_value": 40
+    },
+    {
+      "name": "麋鹿角",
+      "qualities": [
+        3,
+        4
+      ],
+      "regions": [
+        2,
+        3
+      ],
+      "base_value": 40
+    },
+    {
+      "name": "猫抓板",
+      "qualities": [
+        3,
+        4
+      ],
+      "regions": [
+        2,
+        3
+      ],
+      "base_value": 40
+    },
+    {
+      "name": "金铃铛",
+      "qualities": [
+        3,
+        4
+      ],
+      "regions": [
+        2,
+        3
+      ],
+      "base_value": 40
+    },
+    {
+      "name": "红宝石",
+      "qualities": [
+        3,
+        4
+      ],
+      "regions": [
+        1,
+        2,
+        3
+      ],
+      "base_value": 40
+    },
+    {
+      "name": "皮甲",
+      "qualities": [
+        3,
+        4
+      ],
+      "regions": [
+        2,
+        3
+      ],
+      "base_value": 40
+    },
+    {
+      "name": "飞盘",
+      "qualities": [
+        3,
+        4,
+        5
+      ],
+      "regions": [
+        2,
+        3
+      ],
+      "base_value": 40
+    },
+    {
+      "name": "玉佩",
+      "qualities": [
+        3,
+        4,
+        5
+      ],
+      "regions": [
+        2,
+        3
+      ],
+      "base_value": 40
+    },
+    {
+      "name": "猫窝垫",
+      "qualities": [
+        3,
+        4
+      ],
+      "regions": [
+        2,
+        3
+      ],
+      "base_value": 41
+    },
+    {
+      "name": "银币",
+      "qualities": [
+        3,
+        4
+      ],
+      "regions": [
+        1,
+        2,
+        3
+      ],
+      "base_value": 41
+    },
+    {
+      "name": "金戒指",
+      "qualities": [
+        3,
+        4
+      ],
+      "regions": [
+        2,
+        3
+      ],
+      "base_value": 41
+    },
+    {
+      "name": "锁子甲",
+      "qualities": [
+        3,
+        4
+      ],
+      "regions": [
+        2,
+        3
+      ],
+      "base_value": 41
+    },
+    {
+      "name": "古董钢笔",
+      "qualities": [
+        3,
+        4,
+        5
+      ],
+      "regions": [
+        2,
+        3
+      ],
+      "base_value": 41
+    },
+    {
+      "name": "流光玻璃珠",
+      "qualities": [
+        3
+      ],
+      "regions": [
+        2,
+        3
+      ],
+      "base_value": 42
+    },
+    {
+      "name": "梳子",
+      "qualities": [
+        3
+      ],
+      "regions": [
+        2,
+        3
+      ],
+      "base_value": 42
+    },
+    {
+      "name": "藤蔓戒指",
+      "qualities": [
+        3,
+        4
+      ],
+      "regions": [
+        2,
+        3
+      ],
+      "base_value": 42
+    },
+    {
+      "name": "萤石吊坠",
+      "qualities": [
+        3,
+        4
+      ],
+      "regions": [
+        2,
+        3
+      ],
+      "base_value": 42
+    },
+    {
+      "name": "真皮项圈",
+      "qualities": [
+        3,
+        4
+      ],
+      "regions": [
+        2,
+        3
+      ],
+      "base_value": 42
+    },
+    {
+      "name": "丝绸手帕",
+      "qualities": [
+        3,
+        4
+      ],
+      "regions": [
+        2,
+        3
+      ],
+      "base_value": 42
+    },
+    {
+      "name": "超级坚固绳",
+      "qualities": [
+        3,
+        4
+      ],
+      "regions": [
+        2,
+        3
+      ],
+      "base_value": 42
+    },
+    {
+      "name": "珍珠",
+      "qualities": [
+        3,
+        4
+      ],
+      "regions": [
+        2,
+        3
+      ],
+      "base_value": 42
+    },
+    {
+      "name": "玛瑙",
+      "qualities": [
+        3,
+        4
+      ],
+      "regions": [
+        2,
+        3
+      ],
+      "base_value": 42
+    },
+    {
+      "name": "宝剑",
+      "qualities": [
+        3,
+        4
+      ],
+      "regions": [
+        2,
+        3
+      ],
+      "base_value": 42
+    },
+    {
+      "name": "飞刀",
+      "qualities": [
+        3,
+        4
+      ],
+      "regions": [
+        2,
+        3
+      ],
+      "base_value": 42
+    },
+    {
+      "name": "铜铃",
+      "qualities": [
+        3,
+        4
+      ],
+      "regions": [
+        2,
+        3
+      ],
+      "base_value": 42
+    },
+    {
+      "name": "大师项圈",
+      "qualities": [
+        3,
+        4
+      ],
+      "regions": [
+        2,
+        3
+      ],
+      "base_value": 42
+    },
+    {
+      "name": "匕首",
+      "qualities": [
+        3,
+        4,
+        5
+      ],
+      "regions": [
+        2,
+        3
+      ],
+      "base_value": 42
+    },
+    {
+      "name": "兽皮鼓",
+      "qualities": [
+        3,
+        4,
+        5
+      ],
+      "regions": [
+        2,
+        3
+      ],
+      "base_value": 42
+    },
+    {
+      "name": "猫薄荷",
+      "qualities": [
+        3,
+        4,
+        5,
+        6
+      ],
+      "regions": [
+        2,
+        3
+      ],
+      "base_value": 42
+    },
+    {
+      "name": "神秘地图残页",
+      "qualities": [
+        3,
+        5
+      ],
+      "regions": [
+        2,
+        3
+      ],
+      "base_value": 42
+    },
+    {
+      "name": "磨牙棒",
+      "qualities": [
+        3
+      ],
+      "regions": [
+        2,
+        3
+      ],
+      "base_value": 43
+    },
+    {
+      "name": "小毛巾",
+      "qualities": [
+        3
+      ],
+      "regions": [
+        2,
+        3
+      ],
+      "base_value": 43
+    },
+    {
+      "name": "古树树脂",
+      "qualities": [
+        3,
+        4
+      ],
+      "regions": [
+        2,
+        3
+      ],
+      "base_value": 43
+    },
+    {
+      "name": "开罐器",
+      "qualities": [
+        3,
+        4
+      ],
+      "regions": [
+        2,
+        3
+      ],
+      "base_value": 43
+    },
+    {
+      "name": "金属发卡",
+      "qualities": [
+        3,
+        4
+      ],
+      "regions": [
+        2,
+        3
+      ],
+      "base_value": 43
+    },
+    {
+      "name": "翡翠",
+      "qualities": [
+        3,
+        4
+      ],
+      "regions": [
+        2,
+        3
+      ],
+      "base_value": 43
+    },
+    {
+      "name": "盾牌",
+      "qualities": [
+        3,
+        4
+      ],
+      "regions": [
+        2,
+        3
+      ],
+      "base_value": 43
+    },
+    {
+      "name": "狼牙项链",
+      "qualities": [
+        3,
+        4,
+        5
+      ],
+      "regions": [
+        2,
+        3
+      ],
+      "base_value": 43
+    },
+    {
+      "name": "铜镜",
+      "qualities": [
+        3,
+        4,
+        5
+      ],
+      "regions": [
+        2,
+        3
+      ],
+      "base_value": 43
+    },
+    {
+      "name": "高级梳",
+      "qualities": [
+        3,
+        4
+      ],
+      "regions": [
+        2,
+        3
+      ],
+      "base_value": 45
+    },
+    {
+      "name": "旧金币",
+      "qualities": [
+        1,
+        2,
+        3
+      ],
+      "regions": [
+        2,
+        3
+      ],
+      "base_value": 50
+    },
+    {
+      "name": "怀表",
+      "qualities": [
+        3,
+        4,
+        5
+      ],
+      "regions": [
+        2,
+        3
+      ],
+      "base_value": 50
+    },
+    {
+      "name": "羊皮卷",
+      "qualities": [
+        3,
+        4,
+        5
+      ],
+      "regions": [
+        2,
+        3
+      ],
+      "base_value": 60
+    },
+    {
+      "name": "权杖",
+      "qualities": [
+        3,
+        4,
+        5
+      ],
+      "regions": [
+        2,
+        3
+      ],
+      "base_value": 60
+    },
+    {
+      "name": "蓝宝石",
+      "qualities": [
+        3,
+        4,
+        5
+      ],
+      "regions": [
+        2,
+        3
+      ],
+      "base_value": 80
+    },
+    {
+      "name": "金币",
+      "qualities": [
+        3,
+        4,
+        5
+      ],
+      "regions": [
+        2,
+        3
+      ],
+      "base_value": 100
+    },
+    {
+      "name": "圣水瓶",
+      "qualities": [
+        3,
+        4,
+        5
+      ],
+      "regions": [
+        2,
+        3
+      ],
+      "base_value": 100
+    },
+    {
+      "name": "魔法书页",
+      "qualities": [
+        4,
+        5
+      ],
+      "regions": [
+        3
+      ],
+      "base_value": 100
+    },
+    {
+      "name": "丝绸围巾",
+      "qualities": [
+        4,
+        5
+      ],
+      "regions": [
+        3
+      ],
+      "base_value": 100
+    },
+    {
+      "name": "经文",
+      "qualities": [
+        4,
+        5
+      ],
+      "regions": [
+        3
+      ],
+      "base_value": 100
+    },
+    {
+      "name": "猫窝",
+      "qualities": [
+        4,
+        5
+      ],
+      "regions": [
+        3
+      ],
+      "base_value": 100
+    },
+    {
+      "name": "水晶球",
+      "qualities": [
+        4,
+        5,
+        6
+      ],
+      "regions": [
+        3
+      ],
+      "base_value": 100
+    },
+    {
+      "name": "月光水晶",
+      "qualities": [
+        4,
+        5
+      ],
+      "regions": [
+        3
+      ],
+      "base_value": 102
+    },
+    {
+      "name": "金怀表",
+      "qualities": [
+        4,
+        5
+      ],
+      "regions": [
+        3
+      ],
+      "base_value": 102
+    },
+    {
+      "name": "面具",
+      "qualities": [
+        4,
+        5
+      ],
+      "regions": [
+        3
+      ],
+      "base_value": 102
+    },
+    {
+      "name": "项圈",
+      "qualities": [
+        4,
+        5
+      ],
+      "regions": [
+        3
+      ],
+      "base_value": 102
+    },
+    {
+      "name": "钻石项链",
+      "qualities": [
+        4,
+        5,
+        6
+      ],
+      "regions": [
+        3
+      ],
+      "base_value": 102
+    },
+    {
+      "name": "精灵秘银",
+      "qualities": [
+        4,
+        5
+      ],
+      "regions": [
+        3
+      ],
+      "base_value": 104
+    },
+    {
+      "name": "四叶草",
+      "qualities": [
+        4,
+        5
+      ],
+      "regions": [
+        3
+      ],
+      "base_value": 104
+    },
+    {
+      "name": "斗篷",
+      "qualities": [
+        4,
+        5
+      ],
+      "regions": [
+        3
+      ],
+      "base_value": 104
+    },
+    {
+      "name": "夜明珠",
+      "qualities": [
+        4,
+        5,
+        6
+      ],
+      "regions": [
+        3
+      ],
+      "base_value": 104
+    },
+    {
+      "name": "八音盒",
+      "qualities": [
+        4,
+        5,
+        6
+      ],
+      "regions": [
+        3
+      ],
+      "base_value": 104
+    },
+    {
+      "name": "遗失的宝藏图",
+      "qualities": [
+        4,
+        5
+      ],
+      "regions": [
+        3
+      ],
+      "base_value": 106
+    },
+    {
+      "name": "银餐具",
+      "qualities": [
+        4,
+        5
+      ],
+      "regions": [
+        3
+      ],
+      "base_value": 106
+    },
+    {
+      "name": "骨杖",
+      "qualities": [
+        4,
+        5
+      ],
+      "regions": [
+        3
+      ],
+      "base_value": 106
+    },
+    {
+      "name": "猫王冠",
+      "qualities": [
+        4,
+        5,
+        6
+      ],
+      "regions": [
+        3
+      ],
+      "base_value": 106
+    },
+    {
+      "name": "机械鸟",
+      "qualities": [
+        4,
+        5,
+        6
+      ],
+      "regions": [
+        3
+      ],
+      "base_value": 106
+    },
+    {
+      "name": "精灵叶片",
+      "qualities": [
+        4,
+        5
+      ],
+      "regions": [
+        3
+      ],
+      "base_value": 108
+    },
+    {
+      "name": "宝石戒指",
+      "qualities": [
+        4,
+        5
+      ],
+      "regions": [
+        3
+      ],
+      "base_value": 108
+    },
+    {
+      "name": "十字架",
+      "qualities": [
+        4,
+        5
+      ],
+      "regions": [
+        3
+      ],
+      "base_value": 108
+    },
+    {
+      "name": "猫抓柱",
+      "qualities": [
+        4,
+        5
+      ],
+      "regions": [
+        3
+      ],
+      "base_value": 108
+    },
+    {
+      "name": "魔法铃铛",
+      "qualities": [
+        4,
+        5,
+        6
+      ],
+      "regions": [
+        3
+      ],
+      "base_value": 108
+    },
+    {
+      "name": "古代符文石",
+      "qualities": [
+        4,
+        6
+      ],
+      "regions": [
+        3
+      ],
+      "base_value": 108
+    },
+    {
+      "name": "星辉尘",
+      "qualities": [
+        5,
+        6
+      ],
+      "regions": [
+        3
+      ],
+      "base_value": 250
+    },
+    {
+      "name": "永恒宝石",
+      "qualities": [
+        5,
+        6
+      ],
+      "regions": [
+        3
+      ],
+      "base_value": 250
+    },
+    {
+      "name": "黄金猫砂盆",
+      "qualities": [
+        5,
+        6
+      ],
+      "regions": [
+        3
+      ],
+      "base_value": 250
+    },
+    {
+      "name": "星辰项链",
+      "qualities": [
+        5,
+        6
+      ],
+      "regions": [
+        3
+      ],
+      "base_value": 250
+    },
+    {
+      "name": "时空沙漏",
+      "qualities": [
+        5,
+        6
+      ],
+      "regions": [
+        3
+      ],
+      "base_value": 250
+    },
+    {
+      "name": "死神镰刀",
+      "qualities": [
+        5,
+        6
+      ],
+      "regions": [
+        3
+      ],
+      "base_value": 250
+    },
+    {
+      "name": "宝藏地图",
+      "qualities": [
+        5,
+        6
+      ],
+      "regions": [
+        3
+      ],
+      "base_value": 250
+    },
+    {
+      "name": "银河项链",
+      "qualities": [
+        5,
+        6
+      ],
+      "regions": [
+        3
+      ],
+      "base_value": 250
+    },
+    {
+      "name": "猫神剑",
+      "qualities": [
+        5,
+        6
+      ],
+      "regions": [
+        3
+      ],
+      "base_value": 250
+    },
+    {
+      "name": "钻石项圈",
+      "qualities": [
+        5,
+        6
+      ],
+      "regions": [
+        3
+      ],
+      "base_value": 250
+    },
+    {
+      "name": "法杖",
+      "qualities": [
+        5,
+        6
+      ],
+      "regions": [
+        3
+      ],
+      "base_value": 250
+    },
+    {
+      "name": "古树心材",
+      "qualities": [
+        5,
+        6
+      ],
+      "regions": [
+        3
+      ],
+      "base_value": 255
+    },
+    {
+      "name": "晨曦圣杯",
+      "qualities": [
+        5,
+        6
+      ],
+      "regions": [
+        3
+      ],
+      "base_value": 255
+    },
+    {
+      "name": "猫神雕像",
+      "qualities": [
+        5,
+        6
+      ],
+      "regions": [
+        3
+      ],
+      "base_value": 255
+    },
+    {
+      "name": "龙鳞",
+      "qualities": [
+        5,
+        6
+      ],
+      "regions": [
+        3
+      ],
+      "base_value": 255
+    },
+    {
+      "name": "起源之石",
+      "qualities": [
+        5,
+        6
+      ],
+      "regions": [
+        3
+      ],
+      "base_value": 255
+    },
+    {
+      "name": "亡灵书",
+      "qualities": [
+        5,
+        6
+      ],
+      "regions": [
+        3
+      ],
+      "base_value": 255
+    },
+    {
+      "name": "猫神皇冠",
+      "qualities": [
+        5,
+        6
+      ],
+      "regions": [
+        3
+      ],
+      "base_value": 255
+    },
+    {
+      "name": "流星碎片",
+      "qualities": [
+        5,
+        6
+      ],
+      "regions": [
+        3
+      ],
+      "base_value": 255
+    },
+    {
+      "name": "龙鳞甲",
+      "qualities": [
+        5,
+        6
+      ],
+      "regions": [
+        3
+      ],
+      "base_value": 255
+    },
+    {
+      "name": "猫神权杖",
+      "qualities": [
+        5,
+        6
+      ],
+      "regions": [
+        3
+      ],
+      "base_value": 255
+    },
+    {
+      "name": "精灵之弓",
+      "qualities": [
+        5,
+        6
+      ],
+      "regions": [
+        3
+      ],
+      "base_value": 255
+    },
+    {
+      "name": "王冠碎片",
+      "qualities": [
+        5,
+        6
+      ],
+      "regions": [
+        3
+      ],
+      "base_value": 260
+    },
+    {
+      "name": "命运金币",
+      "qualities": [
+        5,
+        6
+      ],
+      "regions": [
+        3
+      ],
+      "base_value": 260
+    },
+    {
+      "name": "永恒猫粮",
+      "qualities": [
+        5,
+        6
+      ],
+      "regions": [
+        3
+      ],
+      "base_value": 260
+    },
+    {
+      "name": "猫爪印",
+      "qualities": [
+        5,
+        6
+      ],
+      "regions": [
+        3
+      ],
+      "base_value": 260
+    },
+    {
+      "name": "梦境羽毛",
+      "qualities": [
+        5,
+        6
+      ],
+      "regions": [
+        3
+      ],
+      "base_value": 260
+    },
+    {
+      "name": "血月",
+      "qualities": [
+        5,
+        6
+      ],
+      "regions": [
+        3
+      ],
+      "base_value": 260
+    },
+    {
+      "name": "宇宙猫粮",
+      "qualities": [
+        5,
+        6
+      ],
+      "regions": [
+        3
+      ],
+      "base_value": 260
+    },
+    {
+      "name": "猫神低语",
+      "qualities": [
+        5,
+        6
+      ],
+      "regions": [
+        3
+      ],
+      "base_value": 260
+    },
+    {
+      "name": "龙息猫薄荷",
+      "qualities": [
+        5,
+        6
+      ],
+      "regions": [
+        3
+      ],
+      "base_value": 260
+    },
+    {
+      "name": "古董金币",
+      "qualities": [
+        5,
+        6
+      ],
+      "regions": [
+        3
+      ],
+      "base_value": 260
+    },
+    {
+      "name": "矮人之锤",
+      "qualities": [
+        5,
+        6
+      ],
+      "regions": [
+        3
+      ],
+      "base_value": 260
+    },
+    {
+      "name": "幽影之瞳",
+      "qualities": [
+        5,
+        6
+      ],
+      "regions": [
+        3
+      ],
+      "base_value": 265
+    },
+    {
+      "name": "猫王权杖",
+      "qualities": [
+        5,
+        6
+      ],
+      "regions": [
+        3
+      ],
+      "base_value": 265
+    },
+    {
+      "name": "天堂之门钥匙",
+      "qualities": [
+        5,
+        6
+      ],
+      "regions": [
+        3
+      ],
+      "base_value": 265
+    },
+    {
+      "name": "深渊之眼",
+      "qualities": [
+        5,
+        6
+      ],
+      "regions": [
+        3
+      ],
+      "base_value": 265
+    },
+    {
+      "name": "彩虹猫尾",
+      "qualities": [
+        5,
+        6
+      ],
+      "regions": [
+        3
+      ],
+      "base_value": 265
+    },
+    {
+      "name": "亚特兰蒂斯猫城",
+      "qualities": [
+        5,
+        6
+      ],
+      "regions": [
+        3
+      ],
+      "base_value": 265
+    },
+    {
+      "name": "创世猫爪",
+      "qualities": [
+        5,
+        6
+      ],
+      "regions": [
+        3
+      ],
+      "base_value": 265
+    },
+    {
+      "name": "黑暗猫粮",
+      "qualities": [
+        5,
+        6
+      ],
+      "regions": [
+        3
+      ],
+      "base_value": 265
+    },
+    {
+      "name": "猫神祝福",
+      "qualities": [
+        5,
+        6
+      ],
+      "regions": [
+        3
+      ],
+      "base_value": 265
+    },
+    {
+      "name": "龙涎香",
+      "qualities": [
+        5,
+        6
+      ],
+      "regions": [
+        3
+      ],
+      "base_value": 265
+    },
+    {
+      "name": "龙神剑",
+      "qualities": [
+        5,
+        6
+      ],
+      "regions": [
+        3
+      ],
+      "base_value": 265
+    },
+    {
+      "name": "龙鳞碎片",
+      "qualities": [
+        5,
+        6
+      ],
+      "regions": [
+        3
+      ],
+      "base_value": 270
+    },
+    {
+      "name": "九命护符",
+      "qualities": [
+        5,
+        6
+      ],
+      "regions": [
+        3
+      ],
+      "base_value": 270
+    },
+    {
+      "name": "猫之心",
+      "qualities": [
+        5,
+        6
+      ],
+      "regions": [
+        3
+      ],
+      "base_value": 270
+    },
+    {
+      "name": "末日铃铛",
+      "qualities": [
+        5,
+        6
+      ],
+      "regions": [
+        3
+      ],
+      "base_value": 270
+    },
+    {
+      "name": "月光石",
+      "qualities": [
+        5,
+        6
+      ],
+      "regions": [
+        3
+      ],
+      "base_value": 270
+    },
+    {
+      "name": "猫神遗嘱",
+      "qualities": [
+        5,
+        6
+      ],
+      "regions": [
+        3
+      ],
+      "base_value": 270
+    },
+    {
+      "name": "猫眼石",
+      "qualities": [
+        5,
+        6
+      ],
+      "regions": [
+        3
+      ],
+      "base_value": 270
+    },
+    {
+      "name": "虚空猫窝",
+      "qualities": [
+        5,
+        6
+      ],
+      "regions": [
+        3
+      ],
+      "base_value": 270
+    },
+    {
+      "name": "猫神庇护",
+      "qualities": [
+        5,
+        6
+      ],
+      "regions": [
+        3
+      ],
+      "base_value": 270
+    },
+    {
+      "name": "巨剑",
+      "qualities": [
+        5,
+        6
+      ],
+      "regions": [
+        3
+      ],
+      "base_value": 270
+    },
+    {
+      "name": "神明之剑",
+      "qualities": [
+        5,
+        6
+      ],
+      "regions": [
+        3
+      ],
+      "base_value": 270
+    },
+    {
+      "name": "世界树枝芽",
+      "qualities": [
+        6
+      ],
+      "regions": [
+        3
+      ],
+      "base_value": 600
+    }
+  ],
+  "treasure_prefixes": [
+    {
+      "grade": "D级",
+      "name": "破损的",
+      "multiplier": 0.5
+    },
+    {
+      "grade": "D级",
+      "name": "生锈的",
+      "multiplier": 0.52
+    },
+    {
+      "grade": "D级",
+      "name": "劣质的",
+      "multiplier": 0.53
+    },
+    {
+      "grade": "D级",
+      "name": "粗劣的",
+      "multiplier": 0.55
+    },
+    {
+      "grade": "D级",
+      "name": "残破的",
+      "multiplier": 0.56
+    },
+    {
+      "grade": "D级",
+      "name": "残缺的",
+      "multiplier": 0.57
+    },
+    {
+      "grade": "D级",
+      "name": "腐朽的",
+      "multiplier": 0.59
+    },
+    {
+      "grade": "D级",
+      "name": "朽坏的",
+      "multiplier": 0.6
+    },
+    {
+      "grade": "D级",
+      "name": "破旧的",
+      "multiplier": 0.62
+    },
+    {
+      "grade": "D级",
+      "name": "磨损的",
+      "multiplier": 0.64
+    },
+    {
+      "grade": "D级",
+      "name": "发霉的",
+      "multiplier": 0.65
+    },
+    {
+      "grade": "D级",
+      "name": "受潮的",
+      "multiplier": 0.67
+    },
+    {
+      "grade": "D级",
+      "name": "粗制滥造的",
+      "multiplier": 0.68
+    },
+    {
+      "grade": "D级",
+      "name": "被诅咒的",
+      "multiplier": 0.7
+    },
+    {
+      "grade": "D级",
+      "name": "受污染的",
+      "multiplier": 0.71
+    },
+    {
+      "grade": "D级",
+      "name": "蒙尘的",
+      "multiplier": 0.72
+    },
+    {
+      "grade": "D级",
+      "name": "黯淡的",
+      "multiplier": 0.74
+    },
+    {
+      "grade": "C级",
+      "name": "普通的",
+      "multiplier": 1.0
+    },
+    {
+      "grade": "C级",
+      "name": "寻常的",
+      "multiplier": 1.03
+    },
+    {
+      "grade": "C级",
+      "name": "制式的",
+      "multiplier": 1.06
+    },
+    {
+      "grade": "C级",
+      "name": "基础的",
+      "multiplier": 1.09
+    },
+    {
+      "grade": "C级",
+      "name": "初级的",
+      "multiplier": 1.12
+    },
+    {
+      "grade": "C级",
+      "name": "平庸的",
+      "multiplier": 1.15
+    },
+    {
+      "grade": "C级",
+      "name": "凡俗的",
+      "multiplier": 1.18
+    },
+    {
+      "grade": "C级",
+      "name": "老旧的",
+      "multiplier": 1.21
+    },
+    {
+      "grade": "C级",
+      "name": "简朴的",
+      "multiplier": 1.24
+    },
+    {
+      "grade": "C级",
+      "name": "朴素的",
+      "multiplier": 1.27
+    },
+    {
+      "grade": "C级",
+      "name": "量产的",
+      "multiplier": 1.3
+    },
+    {
+      "grade": "C级",
+      "name": "批量的",
+      "multiplier": 1.33
+    },
+    {
+      "grade": "B级",
+      "name": "优秀的",
+      "multiplier": 1.8
+    },
+    {
+      "grade": "B级",
+      "name": "优良的",
+      "multiplier": 1.86
+    },
+    {
+      "grade": "B级",
+      "name": "精良的",
+      "multiplier": 1.92
+    },
+    {
+      "grade": "B级",
+      "name": "精致的",
+      "multiplier": 1.98
+    },
+    {
+      "grade": "B级",
+      "name": "坚固的",
+      "multiplier": 2.04
+    },
+    {
+      "grade": "B级",
+      "name": "耐用的",
+      "multiplier": 2.1
+    },
+    {
+      "grade": "B级",
+      "name": "锋利的",
+      "multiplier": 2.16
+    },
+    {
+      "grade": "B级",
+      "name": "锐利的",
+      "multiplier": 2.22
+    },
+    {
+      "grade": "B级",
+      "name": "轻便的",
+      "multiplier": 2.28
+    },
+    {
+      "grade": "B级",
+      "name": "灵巧的",
+      "multiplier": 2.34
+    },
+    {
+      "grade": "B级",
+      "name": "实用的",
+      "multiplier": 2.4
+    },
+    {
+      "grade": "B级",
+      "name": "趁手的",
+      "multiplier": 2.46
+    },
+    {
+      "grade": "B级",
+      "name": "强化的",
+      "multiplier": 2.52
+    },
+    {
+      "grade": "B级",
+      "name": "改良的",
+      "multiplier": 2.58
+    },
+    {
+      "grade": "B级",
+      "name": "结实的",
+      "multiplier": 2.64
+    },
+    {
+      "grade": "B级",
+      "name": "厚重的",
+      "multiplier": 2.7
+    },
+    {
+      "grade": "B级",
+      "name": "打磨的",
+      "multiplier": 2.76
+    },
+    {
+      "grade": "B级",
+      "name": "淬火的",
+      "multiplier": 2.82
+    },
+    {
+      "grade": "A级",
+      "name": "华丽的",
+      "multiplier": 3.2
+    },
+    {
+      "grade": "A级",
+      "name": "华美的",
+      "multiplier": 3.28
+    },
+    {
+      "grade": "A级",
+      "name": "稀有的",
+      "multiplier": 3.36
+    },
+    {
+      "grade": "A级",
+      "name": "罕见的",
+      "multiplier": 3.44
+    },
+    {
+      "grade": "A级",
+      "name": "卓越的",
+      "multiplier": 3.52
+    },
+    {
+      "grade": "A级",
+      "name": "非凡的",
+      "multiplier": 3.6
+    },
+    {
+      "grade": "A级",
+      "name": "耀眼的",
+      "multiplier": 3.68
+    },
+    {
+      "grade": "A级",
+      "name": "璀璨的",
+      "multiplier": 3.76
+    },
+    {
+      "grade": "A级",
+      "name": "附魔的",
+      "multiplier": 3.84
+    },
+    {
+      "grade": "A级",
+      "name": "铭文的",
+      "multiplier": 3.92
+    },
+    {
+      "grade": "A级",
+      "name": "古老的",
+      "multiplier": 4.0
+    },
+    {
+      "grade": "A级",
+      "name": "传承的",
+      "multiplier": 4.08
+    },
+    {
+      "grade": "A级",
+      "name": "神圣的",
+      "multiplier": 4.16
+    },
+    {
+      "grade": "A级",
+      "name": "虔诚的",
+      "multiplier": 4.24
+    },
+    {
+      "grade": "A级",
+      "name": "暗影的",
+      "multiplier": 4.32
+    },
+    {
+      "grade": "A级",
+      "name": "幽暗的",
+      "multiplier": 4.4
+    },
+    {
+      "grade": "A级",
+      "name": "狂野的",
+      "multiplier": 4.48
+    },
+    {
+      "grade": "A级",
+      "name": "嗜血的",
+      "multiplier": 4.56
+    },
+    {
+      "grade": "A级",
+      "name": "风暴的",
+      "multiplier": 4.64
+    },
+    {
+      "grade": "A级",
+      "name": "烈焰的",
+      "multiplier": 4.72
+    },
+    {
+      "grade": "A级",
+      "name": "精工的",
+      "multiplier": 4.8
+    },
+    {
+      "grade": "A级",
+      "name": "大师的",
+      "multiplier": 4.88
+    },
+    {
+      "grade": "S级",
+      "name": "传说的",
+      "multiplier": 6.0
+    },
+    {
+      "grade": "S级",
+      "name": "史诗的",
+      "multiplier": 6.2
+    },
+    {
+      "grade": "S级",
+      "name": "神圣的",
+      "multiplier": 6.4
+    },
+    {
+      "grade": "S级",
+      "name": "天启的",
+      "multiplier": 6.6
+    },
+    {
+      "grade": "S级",
+      "name": "不朽的",
+      "multiplier": 6.8
+    },
+    {
+      "grade": "S级",
+      "name": "永恒的",
+      "multiplier": 7.0
+    },
+    {
+      "grade": "S级",
+      "name": "灭世的",
+      "multiplier": 7.2
+    },
+    {
+      "grade": "S级",
+      "name": "陨落的",
+      "multiplier": 7.4
+    },
+    {
+      "grade": "S级",
+      "name": "混沌的",
+      "multiplier": 7.6
+    },
+    {
+      "grade": "S级",
+      "name": "起源的",
+      "multiplier": 7.8
+    },
+    {
+      "grade": "S级",
+      "name": "幻化的",
+      "multiplier": 8.0
+    },
+    {
+      "grade": "S级",
+      "name": "梦境的",
+      "multiplier": 8.2
+    },
+    {
+      "grade": "S级",
+      "name": "禁忌的",
+      "multiplier": 8.4
+    },
+    {
+      "grade": "S级",
+      "name": "失落的",
+      "multiplier": 8.6
+    },
+    {
+      "grade": "S级",
+      "name": "至高无上的",
+      "multiplier": 9.0
+    },
+    {
+      "grade": "S级",
+      "name": "无上的",
+      "multiplier": 9.0
+    },
+    {
+      "grade": "S级",
+      "name": "星辰的",
+      "multiplier": 9.2
+    },
+    {
+      "grade": "S级",
+      "name": "深渊的",
+      "multiplier": 9.4
+    },
+    {
+      "grade": "S级",
+      "name": "龙血铸就的",
+      "multiplier": 9.6
+    },
+    {
+      "grade": "S级",
+      "name": "神明恩赐的",
+      "multiplier": 9.8
+    }
+  ],
+  "regions": {
+    "1": {
+      "name": "风和平原",
+      "extra_treasure_max": 1,
+      "description": "风和平原：出门就可以看到的平原，适合猫咪的愉快探险！不消耗面包。推荐等级1~20。",
+      "quality_weights": {
+        "1": 80.0,
+        "2": 20.0,
+        "3": 0.0,
+        "4": 0.0,
+        "5": 0.0,
+        "6": 0.0
+      }
+    },
+    "2": {
+      "name": "低语森林",
+      "extra_treasure_max": 2,
+      "description": "低语森林：有点阴森的森林，不过有很多树果和蘑菇！需要等级至少5。推荐等级10~30。",
+      "quality_weights": {
+        "1": 15.0,
+        "2": 75.0,
+        "3": 10.0,
+        "4": 0.0,
+        "5": 0.0,
+        "6": 0.0
+      }
+    },
+    "3": {
+      "name": "灰石谷",
+      "extra_treasure_max": 3,
+      "description": "灰石谷：穿过森林可以看到的谷地，穿过这里就靠近大城市了。需要等级至少15。推荐等级20~40。",
+      "quality_weights": {
+        "1": 10.0,
+        "2": 35.0,
+        "3": 50.0,
+        "4": 5.0,
+        "5": 0.0,
+        "6": 0.0
+      }
+    }
+  }
+}
