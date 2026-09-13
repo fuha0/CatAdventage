@@ -338,19 +338,22 @@ class AnimationMixin:
                 return
             self._set_idle_expression('meow', MEOW_EXPRESSION)
             self._play_meow_sound()
-            self._anim_job = self.animations.schedule(
-                'idle', MEOW_HOLD_MS, lambda: self._play_meow(1))
+            self._meow_job = self.animations.schedule(
+                'meow_expression', MEOW_HOLD_MS,
+                lambda: self._play_meow(1))
             return
-        self._clear_idle_expressions()
+        self._meow_job = None
         self._finish_action()
 
     def _finish_action(self):
         """动作结束：恢复睁眼，并安排下一次随机动作"""
         self._anim_job = None
+        self._clear_idle_expressions()
         if self.closing or self.dragging:
             return
-        self.show_pose('normal')
         self.motion.finish_overlay(getattr(self, '_active_idle_action', None))
+        self.pose = 'normal'
+        self.update_image()
         self._schedule_next()
 
     def _cancel_anim(self):
@@ -363,7 +366,10 @@ class AnimationMixin:
             self._anim_job = None
         cancel_bounce = getattr(self, '_cancel_click_bounce', None)
         if cancel_bounce is not None:
-            cancel_bounce()
+            cancel_bounce(redraw=True)
+        if getattr(self, '_meow_job', None) is not None:
+            self.animations.cancel('meow_expression')
+            self._meow_job = None
         self.motion.cancel_overlays()
         if self.motion.current == 'scratch':
             self.motion.finish('scratch')

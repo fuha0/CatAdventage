@@ -16,6 +16,10 @@ class GameState:
     gold: int = 0
 
     inventory: dict = field(default_factory=dict)
+    obtained_items: set = field(default_factory=set)
+    new_item_categories: set = field(default_factory=set)
+    special_events: set = field(default_factory=set)
+    letters: list = field(default_factory=list)
     treasures: list = field(default_factory=list)
     logs: list = field(default_factory=list)
     equipped_slots: dict = field(

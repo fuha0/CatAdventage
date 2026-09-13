@@ -11,7 +11,7 @@ from pathlib import Path
 
 QUALITY_NAMES = {'粗劣', '普通', '少见', '稀有', '史诗', '传说'}
 PREFIX_GRADES = {'D级', 'C级', 'B级', 'A级', 'S级'}
-EVENT_REGIONS = {1, 2, 3}
+EVENT_REGIONS = set(range(1, 100))
 
 
 @dataclass
@@ -295,6 +295,7 @@ class ContentRepository:
     def _set_market_fields(self, info, row, columns, sheet_title, row_no,
                            errors):
         category = str(info.get('category', ''))
+        is_loot = category == '战利品'
         legacy_price = self._optional_price(self._cell(row, columns, '价格'))
         buy_value = self._cell(row, columns, '购买价格')
         buy_price = (legacy_price if buy_value in (None, '')
@@ -309,12 +310,13 @@ class ContentRepository:
                 '标记为可购买但没有有效购买价格')
 
         sell_value = self._cell(row, columns, '出售价格')
-        sell_price = self._optional_price(sell_value)
-        default_sell = (False if category in ('服装', '书籍')
+        sell_price = (None if is_loot
+                      else self._optional_price(sell_value))
+        default_sell = (False if is_loot or category in ('服装', '书籍')
                         else sell_price is not None)
-        can_sell = self._optional_bool(
+        can_sell = (False if is_loot else self._optional_bool(
             self._cell(row, columns, '可否出售'),
-            default=default_sell)
+            default=default_sell))
         if can_sell and sell_price is None:
             can_sell = False
             errors.append(
@@ -334,6 +336,7 @@ class ContentRepository:
     @classmethod
     def _normalize_market_fields(cls, info):
         category = str(info.get('category', ''))
+        is_loot = category == '战利品'
         buy_price = info.get('buy_price')
         if buy_price is None:
             buy_price = info.get('price')
@@ -344,11 +347,12 @@ class ContentRepository:
             can_buy = False
             buy_price = None
 
-        sell_price = cls._optional_price(info.get('sell_price'))
-        default_sell = (False if category in ('服装', '书籍')
+        sell_price = (None if is_loot
+                      else cls._optional_price(info.get('sell_price')))
+        default_sell = (False if is_loot or category in ('服装', '书籍')
                         else sell_price is not None)
-        can_sell = cls._optional_bool(
-            info.get('can_sell'), default=default_sell)
+        can_sell = (False if is_loot else cls._optional_bool(
+            info.get('can_sell'), default=default_sell))
         if not can_sell or sell_price is None:
             can_sell = False
             sell_price = None
@@ -623,51 +627,75 @@ class ContentRepository:
         events = []
         try:
             workbook = openpyxl.load_workbook(path, data_only=True, read_only=True)
-            if '事件簿' in workbook.sheetnames:
-                sheet = workbook['事件簿']
-            else:
-                sheet = workbook.active
-                errors.append(f'{self.EVENT_FILE}：找不到工作表“事件簿”，已读取活动工作表')
-            headers, rows = self._headers(sheet)
-            required = ('事件名', '事件概述', '事件可能遭遇的地区', '事件难度',
-                        '成功描述', '成功奖励', '失败描述', '失败惩罚')
-            missing = [name for name in required if name not in headers]
-            if missing:
-                errors.append(
-                    f'{self.EVENT_FILE} / {sheet.title}：缺少列 ' + '、'.join(missing))
-                return []
-            columns = {name: headers.index(name) for name in required}
-            for row_no, row in enumerate(rows, start=2):
-                name = str(self._cell(row, columns, '事件名') or '').strip()
-                if not name:
-                    continue
-                region_text = str(self._cell(row, columns, '事件可能遭遇的地区') or '')
-                regions = {int(value) for value in re.findall(r'\d+', region_text)}
-                if not regions:
+            sheet_names = [name for name in workbook.sheetnames
+                           if re.fullmatch(r'事件簿\d+', name)]
+            if not sheet_names:
+                if '事件簿' in workbook.sheetnames:
+                    sheet_names = ['事件簿']
+                else:
+                    sheet_names = [workbook.active.title]
+                    errors.append(f'{self.EVENT_FILE}：找不到工作表“事件簿”，已读取活动工作表')
+            required = ('事件编号', '事件名', '事件概述',
+                        '事件可能遭遇的地区', '事件难度',
+                        '成功描述', '成功奖励',
+                        '失败描述', '失败惩罚')
+            seen_ids = set()
+            for sheet_name in sheet_names:
+                sheet = workbook[sheet_name]
+                headers, rows = self._headers(sheet)
+                missing = [name for name in required if name not in headers]
+                if missing:
                     errors.append(
-                        f'{self.EVENT_FILE} / {sheet.title} / 第{row_no}行：事件地区为空或格式错误')
+                        f'{self.EVENT_FILE} / {sheet.title}?缺少列 '
+                        + '、'.join(missing))
                     continue
-                invalid_regions = sorted(regions - EVENT_REGIONS)
-                if invalid_regions:
-                    errors.append(
-                        f'{self.EVENT_FILE} / {sheet.title} / 第{row_no}行：地区编号 {invalid_regions} 无效')
-                raw_difficulty = self._cell(row, columns, '事件难度')
-                try:
-                    difficulty = max(1, int(float(raw_difficulty)))
-                except (TypeError, ValueError):
-                    errors.append(
-                        f'{self.EVENT_FILE} / {sheet.title} / 第{row_no}行：事件难度“{raw_difficulty}”不是数字')
-                    continue
-                events.append({
-                    'name': name,
-                    'summary': str(self._cell(row, columns, '事件概述') or '').strip(),
-                    'regions': regions,
-                    'difficulty': difficulty,
-                    'success_desc': str(self._cell(row, columns, '成功描述') or '').strip(),
-                    'success_reward': str(self._cell(row, columns, '成功奖励') or '').strip(),
-                    'failure_desc': str(self._cell(row, columns, '失败描述') or '').strip(),
-                    'failure_penalty': str(self._cell(row, columns, '失败惩罚') or '').strip(),
-                })
+                columns = {name: headers.index(name) for name in headers if name}
+                for row_no, row in enumerate(rows, start=2):
+                    name = str(self._cell(row, columns, '事件名') or '').strip()
+                    if not name:
+                        continue
+                    raw_id = self._cell(row, columns, '事件编号')
+                    event_number = str(raw_id).strip() if raw_id not in (None, '') else ''
+                    if event_number.isdigit():
+                        event_number = event_number.zfill(5)
+                    if not event_number:
+                        errors.append(
+                            f'{self.EVENT_FILE} / {sheet.title} / 第{row_no}行：事件编号为空')
+                        continue
+                    if event_number in seen_ids:
+                        errors.append(
+                            f'{self.EVENT_FILE} / {sheet.title} / 第{row_no}行：事件编号重复：{event_number}')
+                        continue
+                    seen_ids.add(event_number)
+                    region_text = str(self._cell(row, columns, '事件可能遭遇的地区') or '')
+                    regions = {int(value) for value in re.findall(r'\d+', region_text)}
+                    if not regions:
+                        errors.append(
+                            f'{self.EVENT_FILE} / {sheet.title} / 第{row_no}行：事件地区为空或格式错误')
+                        continue
+                    invalid_regions = sorted(regions - EVENT_REGIONS)
+                    if invalid_regions:
+                        errors.append(
+                            f'{self.EVENT_FILE} / {sheet.title} / 第{row_no}行：地区编号 {invalid_regions} 无效')
+                        continue
+                    raw_difficulty = self._cell(row, columns, '事件难度')
+                    try:
+                        difficulty = max(1, int(float(raw_difficulty)))
+                    except (TypeError, ValueError):
+                        errors.append(
+                            f'{self.EVENT_FILE} / {sheet.title} / 第{row_no}行：事件难度“{raw_difficulty}”不是数字')
+                        continue
+                    events.append({
+                        'id': event_number,
+                        'name': name,
+                        'summary': str(self._cell(row, columns, '事件概述') or '').strip(),
+                        'regions': regions,
+                        'difficulty': difficulty,
+                        'success_desc': str(self._cell(row, columns, '成功描述') or '').strip(),
+                        'success_reward': str(self._cell(row, columns, '成功奖励') or '').strip(),
+                        'failure_desc': str(self._cell(row, columns, '失败描述') or '').strip(),
+                        'failure_penalty': str(self._cell(row, columns, '失败惩罚') or '').strip(),
+                    })
         except Exception as exc:
             errors.append(f'{self.EVENT_FILE}：读取失败：{exc}')
         finally:

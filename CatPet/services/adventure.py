@@ -29,6 +29,11 @@ class AdventureService:
         ratio = max(1, int(level)) / float(required_level)
         return max(0.2, min(self.max_success, ratio))
 
+    @staticmethod
+    def personalize_description(text, state):
+        name = str(getattr(state, 'cat_name', '') or '猫猫').strip() or '猫猫'
+        return str(text).replace('你', name)
+
     def event_damage(self, state, region_id, severity, difficulty):
         try:
             region_number = int(region_id)
@@ -187,6 +192,7 @@ class AdventureService:
                                if options else failure_text)
                 reward_text = event['failure_penalty']
                 state_text = '失败'
+            description = self.personalize_description(description, state)
             applied = self.apply_reward(
                 reward_text, state, inventory, treasures,
                 treasure_factory, region_number, event['difficulty'])

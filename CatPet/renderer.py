@@ -1,6 +1,8 @@
 # -*- coding: utf-8 -*-
 """RendererMixin 独立模块。"""
 
+import time
+
 # with_hands=False 时，合成图里根本没有手：
 # _compose_pose 里那一整串 _paste_*_hands 全部只在 `if with_hands` 分支内执行，
 # 而这些手部状态（跳跃/甩飞/攀爬/伸手/下落/挠痒）在本文件里也只被那个分支读。
@@ -104,7 +106,6 @@ class RendererMixin:
                 self._freeze_render_value(getattr(self, '_click_expression', None)),
                 self._freeze_render_value(getattr(self, '_forced_expression', None)),
                 self._freeze_render_value(getattr(getattr(self, 'motion', None), 'expression', None)),
-                bool(getattr(self, '_jump_air_expression', False)),
                 # 注意：拖拽的三项（_drag_mode / drag_start_x / drag_start_y）**不**在这里。
                 # 本文件从不读它们，它们只影响合成之后的 _paste_drag_hands，
                 # 而那一刻拖拽底图已经取出来了。放进键里会让同一个底图每次抓取都
@@ -228,16 +229,30 @@ class RendererMixin:
             scaled, ((width - target_w) // 2, height - target_h))
         return canvas
 
-    def _cancel_click_bounce(self):
+    def _cancel_click_bounce(self, redraw=False):
+        was_active = bool(getattr(self, '_click_bounce_frames', []))
+        scale = getattr(self, '_click_bounce_scale', (1.0, 1.0))
+        was_active = was_active or abs(scale[0] - 1.0) >= 0.001 or abs(scale[1] - 1.0) >= 0.001
         animations = getattr(self, 'animations', None)
         if animations is not None:
             animations.cancel('click_bounce')
         self._click_bounce_frames = []
         self._click_bounce_scale = (1.0, 1.0)
+        if redraw and was_active and not getattr(self, 'closing', False):
+            try:
+                self.update_image()
+            except Exception:
+                pass
 
     def _start_click_bounce(self):
         if getattr(self, 'closing', False):
             return
+        cooldown_ms = float(globals().get('CLICK_REACTION_COOLDOWN_MS', 700))
+        now = time.monotonic()
+        last = float(getattr(self, '_last_click_bounce', 0.0))
+        if (now - last) * 1000.0 < cooldown_ms:
+            return
+        self._last_click_bounce = now
         self._cancel_click_bounce()
         self._click_bounce_frames = list(CLICK_BOUNCE_FRAMES)
         self._click_bounce_tick()
@@ -800,7 +815,7 @@ class RendererMixin:
         expr_eye = expression.get('eye', 'eye')
         expr_brow = expression.get('brow', 'brow')
         expr_mouth = expression.get('mouth', 'mouth_happy')
-        if pose == 'drag' and not getattr(self, '_jump_air_expression', False):
+        if pose == 'drag':
             eye_key = 'eye_close2'
         elif pose == 'blink':
             eye_key = 'eye_close1'

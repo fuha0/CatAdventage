@@ -2,6 +2,7 @@
 """WarehouseMixin 独立模块。"""
 import random
 
+from letters import LETTERS, get_letter
 from services import MarketService
 from stats import StatsService
 from ui_theme import THEME, FONT_FAMILY, FONT_SMALL, configure_theme, make_button, make_label, make_card
@@ -16,6 +17,9 @@ PREVIEW_CAT_BOTTOM_MARGIN = 28
 WAREHOUSE_WIDTH = 1200
 WAREHOUSE_EQUIP_WIDTH = 1120
 WAREHOUSE_HEIGHT = 620
+WAREHOUSE_DETAIL_WIDTH = 280
+WAREHOUSE_LETTER_DETAIL_WIDTH = 520
+NEW_ITEM_PAGES = ('物品', '特殊', '装备')
 PREVIEW_BOUNCE_FRAMES = (
     (1.12, 0.82), (0.94, 1.14), (1.05, 0.96),
     (0.98, 1.03), (1.0, 1.0),
@@ -48,7 +52,7 @@ class WarehouseMixin:
         self._warehouse_win = win
         self._reset_pending_warehouse()
         self._preview_source = 'pending'
-        self._warehouse_cat = '装备'
+        self._warehouse_cat = '宝藏'
         self._food_spins = {}
         self._selected_food = None
         self._item_subpage = '食物'
@@ -103,18 +107,31 @@ class WarehouseMixin:
             fg=THEME['accent_hover'], font=(FONT_FAMILY, 13, 'bold'))
         self._warehouse_banner_label.pack(
             side='left', anchor='center', padx=(18, 0))
-        self._warehouse_cats = ('物品', '特殊', '宝藏', '｜', '装备')
+        self._warehouse_cats = ('物品', '特殊', '宝藏', '信件', '｜', '装备')
         self._warehouse_buttons = {}
+        self._warehouse_tab_badges = {}
         for cat in reversed(self._warehouse_cats):
+            holder = tk.Frame(tabbar, bg=page_bg)
+            holder.pack(side='right', padx=3)
             if cat == '｜':
-                btn = make_button(tabbar, '｜', kind='ghost', width=2,
+                btn = make_button(holder, '｜', kind='ghost', width=2,
                                   state='disabled', cursor='arrow')
+                btn.pack()
             else:
                 btn = make_button(
-                    tabbar, cat,
+                    holder, cat,
                     lambda c=cat: self._select_warehouse_tab(c),
                     kind='tab', width=7)
-            btn.pack(side='right', padx=3)
+                btn.pack()
+                if cat in NEW_ITEM_PAGES:
+                    badge = make_label(
+                        holder, '●', bg=THEME['tab_bg'], fg=THEME['danger'],
+                        font=(FONT_FAMILY, 9, 'bold'), cursor='hand2')
+                    badge.bind(
+                        '<Button-1>',
+                        lambda e, c=cat: self._select_warehouse_tab(c))
+                    badge.place_forget()
+                    self._warehouse_tab_badges[cat] = badge
             self._warehouse_buttons[cat] = btn
 
         # 内容：左=预览方框，中=圆槽，右=动态列表
@@ -148,7 +165,7 @@ class WarehouseMixin:
         self._build_vitals_widgets(wrap, THEME['card'], include_exp=False)
 
         self._warehouse_detail_card = make_card(content, bg=THEME['card'])
-        self._warehouse_detail_card.configure(width=280)
+        self._warehouse_detail_card.configure(width=WAREHOUSE_DETAIL_WIDTH)
         self._warehouse_detail_card.pack(
             side='right', fill='y', padx=(12, 0))
         self._warehouse_detail_card.pack_propagate(False)
@@ -173,7 +190,7 @@ class WarehouseMixin:
             right_col, THEME['card'], height=430, width=500, detached=True)
         win.bind('<Motion>', self._equip_preview_motion)
         win.protocol('WM_DELETE_WINDOW', self.close_warehouse)
-        self._select_warehouse_tab('装备')
+        self._select_warehouse_tab('宝藏')
         self._start_preview_actions()
 
 
@@ -252,10 +269,18 @@ class WarehouseMixin:
     def _select_warehouse_tab(self, cat):
         """切换仓库右侧列表分类"""
         self._close_equipment_adjust_panel()
+        self._record_obtained_items()
+        unseen = getattr(self.game, 'new_item_categories', set())
+        if cat in unseen:
+            unseen.discard(cat)
+            self._save_satiety()
         if cat != '宝藏':
             self._treasure_lock_mode = False
+        if cat != getattr(self, '_warehouse_cat', cat):
+            self._pinned_warehouse_detail = None
         self._warehouse_cat = cat
         self._fit_warehouse_width(cat)
+        self._fit_warehouse_detail_width(cat)
         self._configure_warehouse_subbar(cat)
         for c, btn in self._warehouse_buttons.items():
             try:
@@ -265,6 +290,37 @@ class WarehouseMixin:
             except Exception:
                 pass
         self._refresh_warehouse()
+
+
+    def _refresh_warehouse_tab_indicators(self):
+        """更新物品/特殊/装备主页的未读红点。"""
+        badges = getattr(self, '_warehouse_tab_badges', {})
+        if not badges:
+            return
+        unseen = getattr(self.game, 'new_item_categories', set())
+        for cat, badge in badges.items():
+            if cat in unseen:
+                selected = cat == getattr(self, '_warehouse_cat', '')
+                badge.config(
+                    bg=(THEME['tab_selected'] if selected
+                        else THEME['tab_bg']))
+                badge.place(relx=1.0, x=-2, y=0, anchor='ne')
+                badge.lift()
+            else:
+                badge.place_forget()
+
+
+    def _fit_warehouse_detail_width(self, cat):
+        """信件页放大详情栏，相应缩窄中间选择栏。"""
+        card = getattr(self, '_warehouse_detail_card', None)
+        if card is None:
+            return
+        try:
+            width = (WAREHOUSE_LETTER_DETAIL_WIDTH
+                     if cat == '信件' else WAREHOUSE_DETAIL_WIDTH)
+            card.configure(width=width)
+        except Exception:
+            return
 
 
     def _fit_warehouse_width(self, cat):
@@ -295,7 +351,7 @@ class WarehouseMixin:
             selected = getattr(self, '_equip_slot', '头饰')
             command = self._select_equip_subpage
         elif cat == '物品':
-            slots = ('材料', '食物')
+            slots = ('材料', '食物', '战利品')
             selected = getattr(self, '_item_subpage', '食物')
             command = self._select_item_subpage
         else:
@@ -346,6 +402,8 @@ class WarehouseMixin:
         if (self._warehouse_win is None
                 or not self._warehouse_win.winfo_exists()):
             return
+        self._record_obtained_items()
+        self._refresh_warehouse_tab_indicators()
         text = f'金币：{self.gold} G'
         if self.adventuring:
             text += '（探险中…）'
@@ -549,6 +607,14 @@ class WarehouseMixin:
             return
         for child in content.winfo_children():
             child.destroy()
+        if info.get('detail_kind') == 'letter':
+            card = getattr(self, '_warehouse_detail_card', None)
+            if card is not None:
+                card.configure(
+                    highlightbackground=THEME['border'],
+                    highlightcolor=THEME['border'], highlightthickness=1)
+            self._render_letter_warehouse_detail(content, info)
+            return
         quality = info.get('display_quality') or info.get('quality', '普通')
         quality_color = self._quality_color(info)
         card = getattr(self, '_warehouse_detail_card', None)
@@ -593,6 +659,85 @@ class WarehouseMixin:
                 justify='left', anchor='w', wraplength=240).pack(
                     fill='x', padx=12, pady=(7, 0))
 
+
+    def _letter_asset_path(self, relative_path):
+        parts = str(relative_path).replace('\\', '/').split('/', 1)
+        if len(parts) == 2:
+            return _asset_path(parts[1], parts[0])
+        return _asset_path(parts[0])
+
+
+    def _render_letter_text_detail(self, content, info):
+        """没有信封的信件直接在详情栏中显示可滚动正文。"""
+        make_label(
+            content, info.get('title', '信件'), bg=THEME['card'],
+            fg=THEME['text'], font=(FONT_FAMILY, 11, 'bold'),
+            anchor='w', justify='left').pack(fill='x', padx=14, pady=(14, 6))
+        body = info.get('body') or info.get('desc', '（暂无内容）')
+        body_frame = tk.Frame(content, bg=THEME['card'])
+        body_frame.pack(fill='both', expand=True, padx=14, pady=(0, 14))
+        scrollbar = tk.Scrollbar(
+            body_frame, orient='vertical', width=10, bd=0,
+            highlightthickness=0, troughcolor=THEME['card_alt'],
+            bg=THEME['border'])
+        text = tk.Text(
+            body_frame, wrap='word', font=(FONT_FAMILY, 9),
+            bg=THEME['card'], fg=THEME['text'], bd=0,
+            highlightthickness=0, padx=6, pady=6,
+            yscrollcommand=scrollbar.set)
+        scrollbar.config(command=text.yview)
+        scrollbar.pack(side='right', fill='y')
+        text.pack(side='left', fill='both', expand=True)
+        text.insert('1.0', str(body))
+        text.config(state='disabled')
+
+
+    def _render_letter_warehouse_detail(self, content, info):
+        """把信封和信件正文合成后铺进物品详情栏。"""
+        if info.get('presentation') != 'envelope':
+            self._render_letter_text_detail(content, info)
+            return
+        cache = getattr(self, '_letter_detail_photo_cache', {})
+        letter_id = str(info.get('id', ''))
+        photo = cache.get(letter_id)
+        if photo is not None:
+            self._letter_detail_photo = photo
+            make_label(
+                content, image=photo,
+                bg=THEME['card']).pack(expand=True, padx=10, pady=10)
+            return
+        try:
+            envelope = PIL.Image.open(
+                self._letter_asset_path(info['envelope'])).convert('RGBA')
+            letter_content = PIL.Image.open(
+                self._letter_asset_path(info['content_image'])).convert('RGBA')
+            if letter_content.size != envelope.size:
+                letter_content = letter_content.resize(
+                    envelope.size, PIL.Image.Resampling.LANCZOS)
+            image = PIL.Image.alpha_composite(envelope, letter_content)
+            max_width = 400
+            max_height = 470
+            scale = min(max_width / image.width, max_height / image.height)
+            if scale < 1.0:
+                image = image.resize(
+                    (max(1, round(image.width * scale)),
+                     max(1, round(image.height * scale))),
+                    PIL.Image.Resampling.LANCZOS)
+            photo = PIL.ImageTk.PhotoImage(image)
+            cache[letter_id] = photo
+            self._letter_detail_photo_cache = cache
+            self._letter_detail_photo = photo
+            make_label(
+                content, image=photo,
+                bg=THEME['card']).pack(expand=True, padx=10, pady=10)
+        except Exception:
+            make_label(
+                content, info.get('desc', '信件内容暂时无法显示。'),
+                bg=THEME['card'], fg=THEME['text'],
+                font=(FONT_FAMILY, 9), justify='left', anchor='w',
+                wraplength=440).pack(fill='x', padx=18, pady=18)
+
+
     def _toggle_book(self, item_id):
         """勾选/取消待生效书籍；四本表情管理书互斥。"""
         pending = self._pending_books_enabled
@@ -627,14 +772,17 @@ class WarehouseMixin:
         if cat == '宝藏':
             self._build_treasure_list(self._warehouse_list, bg)
             return
+        if cat == '信件':
+            self._build_letter_list(self._warehouse_list, bg)
+            return
         # 物品页按类型字段分栏：食物显示所有食物，其余显示材料。
-        food_subpage = (
-            cat == '物品'
-            and getattr(self, '_item_subpage', '食物') == '食物')
+        item_subpage = (getattr(self, '_item_subpage', '食物')
+                        if cat == '物品' else '')
+        food_subpage = cat == '物品' and item_subpage == '食物'
         found = False
         for iid, info in ITEMS.items():
             if cat == '物品':
-                expected_kind = '食物' if food_subpage else '材料'
+                expected_kind = item_subpage or '材料'
                 if info.get('kind') != expected_kind:
                     continue
             elif info.get('category') != cat:
@@ -779,6 +927,72 @@ class WarehouseMixin:
         outer.bind('<Enter>', lambda e: canvas.bind_all('<MouseWheel>', _wheel))
         outer.bind('<Leave>', lambda e: canvas.unbind_all('<MouseWheel>'))
         return (outer, inner) if detached else inner
+
+
+    def _available_letter_ids(self):
+        result = []
+        raw_letters = getattr(self.game, 'letters', [])
+        if not isinstance(raw_letters, (list, tuple, set)):
+            raw_letters = ()
+        for value in raw_letters:
+            letter_id = str(value)
+            if letter_id in LETTERS and letter_id not in result:
+                result.append(letter_id)
+        result.sort(key=lambda item: LETTERS[item]['number'])
+        return result
+
+
+    def _select_letter(self, letter_id):
+        info = get_letter(letter_id)
+        if info is None:
+            return
+        self._selected_letter_id = letter_id
+        self._pinned_warehouse_detail = None
+        self._refresh_warehouse_list()
+        self._show_warehouse_detail(info, pinned=True)
+
+
+    def _build_letter_list(self, container, bg):
+        """信件页：列出已经收到的信件，点击后常驻详情栏。"""
+        letter_ids = self._available_letter_ids()
+        header = tk.Frame(container, bg=bg)
+        header.pack(anchor='e', pady=(0, 4))
+        make_label(
+            header, text=f'信件：{len(letter_ids)} 封', bg=bg,
+            fg='#555555', font=('Microsoft YaHei UI', 9)).pack(side='left')
+        inner = tk.Frame(container, bg=bg)
+        inner.pack(fill='both', expand=True)
+        if not letter_ids:
+            make_label(
+                inner, text='（还没有收到信件）', bg=bg,
+                fg='#999999').pack(anchor='w')
+            make_label(
+                inner, text='冒险途中遇到的人与事，也许会留下书信。',
+                bg=bg, fg=THEME['muted'], font=('Microsoft YaHei UI', 9)
+            ).pack(anchor='w', pady=(6, 0))
+            return
+        selected_letter = getattr(self, '_selected_letter_id', None)
+        for letter_id in letter_ids:
+            info = get_letter(letter_id)
+            if info is None:
+                continue
+            selected = letter_id == selected_letter
+            border = THEME['accent'] if selected else THEME['border']
+            row = make_card(
+                inner, bg=bg, highlightbackground=border,
+                highlightcolor=border, highlightthickness=2 if selected else 1)
+            row.pack(fill='x', pady=3)
+            row._quality_color = border
+            row._selected = selected
+            label = make_label(
+                row, text=info['title'],
+                bg=bg, fg=THEME['text'], font=(FONT_FAMILY, 10, 'bold'),
+                cursor='hand2', anchor='w')
+            label.pack(fill='x', padx=10, pady=8)
+            select = lambda e, lid=letter_id: self._select_letter(lid)
+            row.bind('<Button-1>', select, add='+')
+            label.bind('<Button-1>', select, add='+')
+            self._bind_warehouse_detail_frame(row, info)
 
 
     def _build_treasure_list(self, container, bg):

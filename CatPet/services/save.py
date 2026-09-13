@@ -8,6 +8,7 @@ from pathlib import Path
 
 from .models import GameState
 from .progression import ProgressionService
+from letters import STARTING_LETTER_IDS, send_letter
 from stats import DEFAULT_STATS
 
 
@@ -80,6 +81,13 @@ class SaveService:
         self.set_slot(slot_index)
         return self.load()
 
+    @staticmethod
+    def _ensure_starting_letters(state):
+        changed = False
+        for letter_id in STARTING_LETTER_IDS:
+            changed = send_letter(state, letter_id) or changed
+        return changed
+
     def new_state(self):
         state = GameState(strength=self.strength_initial,
                           wisdom=self.wisdom_initial,
@@ -94,6 +102,12 @@ class SaveService:
         state.inventory['bread'] = self.starting_bread
         for iid in self.starting_gifts:
             state.inventory[iid] = max(1, state.inventory.get(iid, 0))
+        state.obtained_items = {
+            iid for iid, count in state.inventory.items() if count > 0}
+        state.new_item_categories = set()
+        state.special_events = set()
+        state.letters = []
+        self._ensure_starting_letters(state)
         state.equipped_slots = self._clean_slots({})
         state.equipment_settings = copy.deepcopy(self.default_equipment_settings)
         state.stats = copy.deepcopy(DEFAULT_STATS)
@@ -129,6 +143,18 @@ class SaveService:
         hp_ratio = max(0.0, min(1.0, raw_hp / saved_max))
         state.hp = max(0, min(state.max_hp, round(state.max_hp * hp_ratio)))
         state.inventory = self._clean_inventory(data.get('inventory', {}), first_time=False)
+        raw_obtained = data.get('obtained_items')
+        if isinstance(raw_obtained, (list, tuple, set)):
+            state.obtained_items = self._clean_obtained_items(raw_obtained)
+        else:
+            state.obtained_items = {
+                iid for iid, count in state.inventory.items() if count > 0}
+        state.new_item_categories = self._clean_new_item_categories(
+            data.get('new_item_categories', []))
+        state.special_events = self._clean_special_events(
+            data.get('special_events', []))
+        state.letters = self._clean_letters(data.get('letters', []))
+        self._ensure_starting_letters(state)
         state.treasures = self._clean_treasures(data.get('treasures', []))
         state.logs = self._clean_logs(data.get('logs', []))
         state.equipped_slots = self._clean_slots(data.get('equipped_slots', {}))
@@ -173,6 +199,10 @@ class SaveService:
             raise TypeError('SaveService.save 需要 GameState')
         payload = {
             'gold': int(state.gold), 'inventory': dict(state.inventory),
+            'obtained_items': sorted(state.obtained_items),
+            'new_item_categories': sorted(state.new_item_categories),
+            'special_events': sorted(state.special_events),
+            'letters': list(state.letters),
             'treasures': copy.deepcopy(state.treasures), 'hp': int(state.hp),
             'max_hp': int(state.max_hp), 'strength': int(state.strength),
             'wisdom': int(state.wisdom), 'luck': int(state.luck),
@@ -203,6 +233,41 @@ class SaveService:
             json.dump(payload, handle, ensure_ascii=False, indent=2)
         os.replace(temporary, target)
         return payload
+
+    def _clean_obtained_items(self, raw):
+        return {str(iid) for iid in raw if str(iid) in self.items}
+
+    @staticmethod
+    def _clean_new_item_categories(raw):
+        valid = {'物品', '特殊', '装备'}
+        if not isinstance(raw, (list, tuple, set)):
+            return set()
+        return {str(value) for value in raw if str(value) in valid}
+
+    @staticmethod
+    def _clean_special_events(raw):
+        if not isinstance(raw, (list, tuple, set)):
+            return set()
+        result = set()
+        for value in raw:
+            try:
+                number = int(value)
+            except (TypeError, ValueError):
+                continue
+            if number > 0:
+                result.add(number)
+        return result
+
+    @staticmethod
+    def _clean_letters(raw):
+        if not isinstance(raw, (list, tuple, set)):
+            return []
+        result = []
+        for value in raw:
+            letter_id = str(value)
+            if letter_id and letter_id not in result:
+                result.append(letter_id)
+        return result
 
     def _clean_inventory(self, raw, first_time=False):
         values = raw if isinstance(raw, dict) else {}

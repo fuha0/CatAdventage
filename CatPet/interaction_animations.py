@@ -557,7 +557,6 @@ class InteractionAnimationMixin:
         """取消进行中的跳远动作"""
         self.motion.finish('jump', 'idle')
         self._jump_state = None
-        self._jump_air_expression = False
         self._forced_expression = None
         self.motion.clear_expression('expression_jump')
         self._jump_hand_mode = ''
@@ -568,6 +567,14 @@ class InteractionAnimationMixin:
                 pass
             self._jump_job = None
 
+
+    def _jump_prep_expression(self):
+        preset = self._current_expression_preset()
+        return {
+            'brow': 'brow_1',
+            'eye': preset.get('eye', 'eye'),
+            'mouth': 'mouth_happy',
+        }
 
     def _play_jump(self):
         """待机跳远：蓄力起跳，最高点后接入甩飞物理下落和滑行。"""
@@ -583,8 +590,7 @@ class InteractionAnimationMixin:
         self._cancel_reach()
         self._jump_state = 'prep'
         self.pose = 'normal'
-        self._forced_expression = {
-            'brow': 'brow_1', 'eye': 'eye', 'mouth': 'mouth_happy'}
+        self._forced_expression = self._jump_prep_expression()
         self.motion.set_expression('expression_jump', self._forced_expression)
         # 在缩短后的蓄力区间内随机，蓄得越久，跳得越远
         self._jump_charge_steps = random.randint(
@@ -598,8 +604,7 @@ class InteractionAnimationMixin:
         if step >= self._jump_charge_steps:
             self._start_jump_air()
             return
-        self._forced_expression = {
-            'brow': 'brow_1', 'eye': 'eye', 'mouth': 'mouth_happy'}
+        self._forced_expression = self._jump_prep_expression()
         self.motion.set_expression('expression_jump', self._forced_expression)
         self.motion.set_phase('prep', 'jump')
         self._jump_hand_mode = 'swing_up' if step % 2 == 0 else 'swing_down'
@@ -619,7 +624,6 @@ class InteractionAnimationMixin:
         size = int(ICON_SIZE * self.scale)
         self.motion.set_phase('air', 'jump')
         self._jump_state = 'air'
-        self._jump_air_expression = True
         self._forced_expression = None
         self.motion.clear_expression('expression_jump')
         self._jump_hand_mode = 'forward'
@@ -643,7 +647,7 @@ class InteractionAnimationMixin:
         frame_ratio = AIRBORNE_FRAME_MS / JUMP_AIR_MS
         vx = self._jump_dir * self._jump_dist * frame_ratio
         vy = -4.0 * self._jump_height * (1.0 - 2.0 * t) * frame_ratio
-        return self._start_airborne_motion(vx, vy, jump_air=True)
+        return self._start_airborne_motion(vx, vy)
 
 
     def _jump_air_tick(self):
@@ -709,8 +713,7 @@ class InteractionAnimationMixin:
         """滑到地面后先蓄力，再向后小跳离开屏幕边缘"""
         self.motion.set_phase('hop_prep', 'jump')
         self._jump_state = 'hop_prep'
-        self._forced_expression = {
-            'brow': 'brow_1', 'eye': 'eye', 'mouth': 'mouth_happy'}
+        self._forced_expression = self._jump_prep_expression()
         self.motion.set_expression('expression_jump', self._forced_expression)
         self._back_hop_prep_tick(0)
 
@@ -790,7 +793,6 @@ class InteractionAnimationMixin:
     def _jump_finish(self):
         self.motion.finish('jump', 'idle')
         self._jump_state = None
-        self._jump_air_expression = False
         self._forced_expression = None
         self.motion.clear_expression('expression_jump')
         self._jump_hand_mode = ''
@@ -1278,7 +1280,7 @@ class InteractionAnimationMixin:
         right_limit = screen_w - int(size * CAT_RIGHT_RATIO) + overshoot
         return left_limit, right_limit
 
-    def _start_airborne_motion(self, vx, vy, jump_air=False):
+    def _start_airborne_motion(self, vx, vy):
         """以每帧速度启动甩飞物理，供甩飞和跳远下落共用。"""
         if self.closing or self.hospitalized:
             return False
@@ -1326,7 +1328,6 @@ class InteractionAnimationMixin:
         self._hand_lift = 0.0
         self._cancel_walk()
         self._cancel_jump()
-        self._jump_air_expression = bool(jump_air)
         self._cancel_reach()
         self._cancel_fall()
         self._cancel_anim()
@@ -1465,7 +1466,6 @@ class InteractionAnimationMixin:
         self.falling = False
         self._fling_vx = 0.0
         self._fling_vy = 0.0
-        self._jump_air_expression = False
         self._falling_hands = False
         self._hand_lift = 0.0
         self.show_pose('normal')
@@ -1484,7 +1484,6 @@ class InteractionAnimationMixin:
         self.falling = False
         self._fling_vx = 0.0
         self._fling_vy = 0.0
-        self._jump_air_expression = False
         if self._fling_job is not None:
             try:
                 self.animations.cancel('fling')

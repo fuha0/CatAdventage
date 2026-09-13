@@ -367,6 +367,7 @@ class AdventureMixin:
             base_xp = sum(random.randint(xp_min, xp_max)
                           for _ in range(max(1, minutes)))
 
+        inventory_before = {str(k): int(v) for k, v in self.inventory.items()}
         event_result = self._resolve_adventure_events(region_id, minutes)
         try:
             extra_max = max(0, int(region.get('extra_treasure_max', 0)))
@@ -426,6 +427,11 @@ class AdventureMixin:
                 loot_loss_lines.append(f'宝藏 -{treasure_loss}')
         region_item_id, region_item_count = self._roll_adventure_region_item(
             region_id)
+        item_drop_totals = {}
+        for item_id, after in self.inventory.items():
+            delta = int(after) - inventory_before.get(str(item_id), 0)
+            if delta > 0:
+                item_drop_totals[item_id] = delta
         if not simulated:
             StatsService.record_gold_earned(self.game, max(0, gained_gold))
             StatsService.record_adventure(
@@ -481,7 +487,15 @@ class AdventureMixin:
             log_lines.append(f'升级！达到 Lv.{self.level}（{gains_text}）')
         if emotion_loss:
             log_lines.append(f'情绪 -{emotion_loss}')
-        log_lines.append(f'本次合计：金币 {gained_gold:+d}、经验 +{gained_xp}')
+        drop_parts = []
+        for item_id, count in item_drop_totals.items():
+            item_name = ITEMS.get(item_id, {}).get('name', item_id)
+            drop_parts.append(f'{item_name} ×{count}')
+        treasure_count = len(event_result.get('treasures', []))
+        if treasure_count:
+            drop_parts.append(f'宝藏 ×{treasure_count}')
+        drop_text = '、'.join(drop_parts) or '无'
+        log_lines.append(f'本次合计：金币 {gained_gold:+d}、经验 +{gained_xp}、掉落物品：{drop_text}')
 
         self.logs.append({'time': datetime.datetime.now().strftime('%Y-%m-%d %H:%M'),
                           'lines': log_lines})
@@ -520,27 +534,26 @@ class AdventureMixin:
         for rid, region in REGIONS.items():
             recommended = region.get('recommended_level', 1)
             min_level = region.get('min_level', 1)
-            if region['fallback']:
+            if region.get('fallback'):
                 adv_menu.add_command(
-                    label=(f"{region['name']}（推荐 {recommended} 级 · "
-                           f"{region.get('fixed_minutes', 5)} 分钟）"),
-                    command=lambda r=rid, m=region.get('fixed_minutes', 5):
+                    label=f'{region["name"]}（推荐 {recommended}级 · 5 分钟 · 不消耗面包）',
+                    command=lambda r=rid:
+                    self._confirm_adventure(r, 5))
+                continue
+            if self.level < min_level:
+                adv_menu.add_command(
+                    label=f'{region["name"]}（等级不够哦，请先提升实力吧！）',
+                    state='disabled')
+                continue
+            sub = tk.Menu(adv_menu, tearoff=0)
+            adv_menu.add_cascade(
+                label=f'{region["name"]}（推荐 {recommended}级）',
+                menu=sub)
+            for t in EXPLORE_TIMES:
+                sub.add_command(
+                    label=f'{t}分钟',
+                    command=lambda r=rid, m=t:
                     self._confirm_adventure(r, m))
-            else:
-                if self.level < min_level:
-                    adv_menu.add_command(
-                        label=f'{region["name"]}（等级不够哦，请先提升实力吧！）',
-                        state='disabled')
-                    continue
-                sub = tk.Menu(adv_menu, tearoff=0)
-                adv_menu.add_cascade(
-                    label=f"{region['name']}（推荐 {recommended} 级）",
-                    menu=sub)
-                for t in EXPLORE_TIMES:
-                    sub.add_command(
-                        label=f'{t} 分钟',
-                        command=lambda r=rid, m=t:
-                        self._confirm_adventure(r, m))
         adv_menu.add_separator()
         adv_menu.add_command(label='探险日志', command=self.show_log)
 
@@ -595,10 +608,12 @@ class AdventureMixin:
         txt.pack(fill='both', expand=True, padx=6, pady=6)
         if not self.logs:
             txt.insert('end', '（还没有探险记录）\n')
+        cat_name = str(getattr(self, 'cat_name', '') or '猫猫').strip() or '猫猫'
         for log in reversed(self.logs):
             txt.insert('end', log['time'] + '\n')
             for line in log['lines']:
-                txt.insert('end', '  ' + line + '\n')
+                display_line = str(line).replace('你', cat_name)
+                txt.insert('end', '  ' + display_line + '\n')
             txt.insert('end', '\n')
         txt.config(state='disabled')
         win.protocol('WM_DELETE_WINDOW', self._close_log)
@@ -614,7 +629,9 @@ class AdventureMixin:
 
 
     def _cancel_adventure(self):
-        """取消探险并让猫立即回来（不结算）"""
+        """取消探险并让猫立即回桌面，不结算也不记录统计。"""
+        if not self.adventuring:
+            return
         self.adventuring = False
         self.motion.finish('adventure_wave', 'idle')
         self._forced_expression = None
@@ -633,12 +650,10 @@ class AdventureMixin:
         self._adventure_title_job = None
         self._adventure_minutes = 0
         self._adventure_region = None
-        self._update_tray_title()
-        try:
-            self.root.deiconify()
-        except Exception:
-            pass
-        # 取消探险也恢复被暂停的分钟计时
+        self._adventure_bread_cost = 0
+        self._adventure_treasure_quality_counts = {}
+        self._find_cat(reset_scale=False)
+        # 取消探险恢复被暂停的分钟计时，不触发结算或累计统计。
         self._schedule_hp_regen()
 
 
