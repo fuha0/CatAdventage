@@ -7,6 +7,7 @@ import re
 from pathlib import Path
 
 from .models import GameState
+from .long_adventure import sanitize_plan
 from .progression import ProgressionService
 from letters import STARTING_LETTER_IDS, send_letter
 from stats import DEFAULT_STATS
@@ -19,7 +20,7 @@ class SaveService:
                  hp_max_initial=100, strength_initial=10,
                  wisdom_initial=10, agility_initial=10,
                  luck_initial=0, emotion_initial=50,
-                 gold_initial=0):
+                 gold_initial=0, region_keys=None):
         self.base_save_path = str(save_path)
         self.slot_count = 3
         self.active_slot_file = self.base_save_path + '.active_slot'
@@ -28,6 +29,8 @@ class SaveService:
         self.save_path = self.slot_path(self.slot_index)
         self.items = dict(items)
         self.item_ids = tuple(items)
+        # 长期冒险计划里记录的地区编号，读存档时用它校验合法性。
+        self.region_keys = tuple(str(key) for key in (region_keys or ()))
         self.starting_gifts = tuple(starting_gifts)
         self.starting_bread = int(starting_bread)
         self.clothes_names = set(clothes_names)
@@ -154,11 +157,16 @@ class SaveService:
         state.special_events = self._clean_special_events(
             data.get('special_events', []))
         state.letters = self._clean_letters(data.get('letters', []))
+        state.letter_contents = self._clean_letter_contents(
+            data.get('letter_contents', {}))
         state.letter_attachments_claimed = set(self._clean_letters(
             data.get('letter_attachments_claimed', [])))
         self._ensure_starting_letters(state)
         state.treasures = self._clean_treasures(data.get('treasures', []))
         state.logs = self._clean_logs(data.get('logs', []))
+        # 长期冒险：重启后按计划里的绝对时间继续推进，进度不丢。
+        state.adventure = sanitize_plan(
+            data.get('adventure'), self._region_keys_or_default())
         state.equipped_slots = self._clean_slots(data.get('equipped_slots', {}))
         state.equipment_settings = self._clean_equipment_settings(data.get('equipment_settings', {}))
         state.equipped_clothes = self._clean_clothes(data.get('clothes'))
@@ -208,6 +216,8 @@ class SaveService:
             'new_item_categories': sorted(state.new_item_categories),
             'special_events': sorted(state.special_events),
             'letters': list(state.letters),
+            'letter_contents': copy.deepcopy(
+                getattr(state, 'letter_contents', {}) or {}),
             'letter_attachments_claimed': sorted(
                 getattr(state, 'letter_attachments_claimed', ()) or ()),
             'treasures': copy.deepcopy(state.treasures), 'hp': int(state.hp),
@@ -234,6 +244,8 @@ class SaveService:
             'click_sound': str(state.click_sound),
             'alchemy_level': int(getattr(state, 'alchemy_level', 1)),
             'alchemy_exp': int(getattr(state, 'alchemy_exp', 0)),
+            'adventure': copy.deepcopy(
+                getattr(state, 'adventure', {}) or {}),
         }
         target = Path(self.save_path)
         temporary = target.with_suffix(target.suffix + '.tmp')
@@ -278,6 +290,30 @@ class SaveService:
                 result.append(letter_id)
         return result
 
+    def _region_keys_or_default(self):
+        """长期冒险计划允许的地区编号；未注入时退回 GameState 的默认地区。"""
+        return self.region_keys or ('1',)
+
+    @staticmethod
+    def _clean_letter_contents(raw):
+        """动态信件正文表：{信件键: {'title': 标题, 'body': 正文}}。"""
+        if not isinstance(raw, dict):
+            return {}
+        result = {}
+        for letter_id, value in raw.items():
+            letter_id = str(letter_id)
+            if not letter_id or not isinstance(value, dict):
+                continue
+            body = value.get('body')
+            title = value.get('title')
+            if body is None and title is None:
+                continue
+            result[letter_id] = {
+                'title': str(title or '').strip()[:40],
+                'body': str(body or ''),
+            }
+        return result
+
     def _clean_inventory(self, raw, first_time=False):
         values = raw if isinstance(raw, dict) else {}
         result = {}
@@ -320,7 +356,8 @@ class SaveService:
                 'plain_clear_count', 'valley_clear_count',
                 'forest_clear_count', 'adventure_minutes', 'max_feed_amount',
                 'mushroom_damage_count', 'alchemy_craft_count',
-                'green_potion_used'):
+                'green_potion_used', 'long_adventure_count',
+                'long_adventure_days', 'long_adventure_letter_count'):
             # 总经验是后加统计项；旧存档留空，交给 StatsService 按等级回填。
             if key == 'exp_earned' and key not in values:
                 continue

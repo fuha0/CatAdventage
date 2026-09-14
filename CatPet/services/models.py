@@ -20,9 +20,19 @@ class GameState:
     new_item_categories: set = field(default_factory=set)
     special_events: set = field(default_factory=set)
     letters: list = field(default_factory=list)
+    # 动态信件正文表：{信件键: {'title': 标题, 'body': 正文}}。
+    # 固定信件不写这里；长期冒险途中寄回的信会写，用于持久化每次不同的内容。
+    letter_contents: dict = field(default_factory=dict)
     letter_attachments_claimed: set = field(default_factory=set)
     treasures: list = field(default_factory=list)
     logs: list = field(default_factory=list)
+    # 长期冒险（>3 天）的进行状态，用于软件重启后继续按原计划推进：
+    #   {'active': True, 'region': '2', 'days': 4, 'minutes': 5760,
+    #    'started_at': 起始 epoch 秒, 'ends_at': 预期结束 epoch 秒,
+    #    'seed': 随机种子, 'bread_cost': 面包消耗,
+    #    'settled_days': 已结算天数, 'letters_sent': 途中已寄出的信数,
+    #    'pending_lines': [途中事件描述]}。空闲时为空字典。
+    adventure: dict = field(default_factory=dict)
     equipped_slots: dict = field(
         default_factory=lambda: {'头饰': [], '服装': None, '饰品': []})
     equipment_settings: dict = field(default_factory=dict)

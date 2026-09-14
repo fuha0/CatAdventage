@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 """AdventureMixin 独立模块。"""
 from services import AdventureService, TreasureService, InventoryService
+from services.long_adventure import region_supports_long_adventure
 from stats import StatsService
 
 
@@ -18,7 +19,7 @@ class AdventureMixin:
         elif minutes not in EXPLORE_TIMES:
             return
         if self.hp < HP_LOW_AT:
-            self._alert('探险', '活力值不足 20，无法探险')
+            self._adventure_notice('活力值不足 20，无法探险。')
             return
         # 等级低于地区最低要求不再拦截：允许硬闯，但成功率固定 10%
         # （由 AdventureService.success_chance 判定）。
@@ -28,8 +29,7 @@ class AdventureMixin:
                 minutes / ADVENTURE_BREAD_MINUTES_PER_UNIT)
             bread_count = InventoryService.count(self.inventory, 'bread')
             if bread_count < bread_cost:
-                self._alert(
-                    '探险',
+                self._adventure_notice(
                     f'面包不足：需要 {bread_cost} 个，当前只有 {bread_count} 个。')
                 return
         if not self.close_warehouse():
@@ -60,8 +60,37 @@ class AdventureMixin:
         self._cancel_jump()
         self._cancel_emotion_face()
         self.close_scale_window()
+        # 出发记录写进探险日志（不弹窗）：消耗与风险提示都在这里。
+        self._log_note(self._departure_lines(region, minutes, bread_cost))
+        self._save_satiety()
         self._update_tray_title()
         self._start_adventure_departure()
+
+    def _departure_lines(self, region, minutes, bread_cost):
+        """短途出发要写进探险日志的内容（消耗 + 风险提示 + 预计归来）。"""
+        lines = [f'【探险出发】{region.get("name", "远方")} · {minutes} 分钟']
+        if bread_cost:
+            lines.append(
+                f'消耗面包 ×{bread_cost}（剩余 '
+                f'{InventoryService.count(self.inventory, "bread")} 个）。')
+        else:
+            lines.append('风和平原不消耗面包。')
+        try:
+            min_level = int(region.get('min_level', 1) or 1)
+            recommended = int(region.get('recommended_level', 1) or 1)
+        except (TypeError, ValueError):
+            min_level, recommended = 1, 1
+        if not region.get('fallback') and self.level < min_level:
+            lines.append(f'注意：未达最低等级 {min_level} 级，'
+                         '本次探险的事件成功率固定只有 10%。')
+        elif self.level < recommended:
+            lines.append(f'注意：当前 {self.level} 级，'
+                         f'低于推荐的 {recommended} 级。')
+        if self.hp < self.max_hp * 0.5:
+            lines.append(f'注意：活力偏低（{self.hp}/{self.max_hp}）。')
+        lines.append('预计归来：' + time.strftime(
+            '%Y-%m-%d %H:%M', time.localtime(time.time() + minutes * 60)))
+        return lines
 
 
     def _start_adventure_departure(self):
@@ -196,12 +225,350 @@ class AdventureMixin:
             self.root.withdraw()
         except Exception:
             pass
+        # 长期冒险（>3 天）不挂一个「minutes * 60 * 1000」的定时器：那个
+        # 定时器跨不过软件重启。改成先写出计划、再定期对表补齐进度。
+        if getattr(self, '_long_adv_total_days', 0) > 0:
+            self._begin_long_adventure_watch()
+            return
         self._adventure_end_time = time.monotonic() + self._adventure_minutes * 60
         self._adventure_job = self.root.after(
             self._adventure_minutes * 60 * 1000, self._finish_adventure)
         self._adventure_title_job = self.animations.schedule('adventure_title', 
             ADVENTURE_TITLE_UPDATE_MS, self._adventure_title_tick)
         self._update_tray_title()
+
+    # ---------- 长期冒险（大于 3 天） ----------
+
+    def _long_adventure_plan(self):
+        """当前存档里的长期冒险计划（不合法或没在进行时返回空字典）。"""
+        plan = getattr(self.game, 'adventure', None)
+        return plan if isinstance(plan, dict) and plan.get('active') else {}
+
+    def _long_adventure_service(self):
+        return LongAdventureService(ITEMS, REGIONS, random)
+
+    def _long_adventure_region(self):
+        """长期冒险所在地区（兜底风和平原）。"""
+        plan = self._long_adventure_plan()
+        region_id = str(plan.get('region', '') or '')
+        if region_id not in REGIONS:
+            region_id = str(self._adventure_region or '1')
+        return region_id if region_id in REGIONS else '1'
+
+    def _long_adventure_apply_reward(self, text, scale=1.0):
+        """长期冒险的途中事件结算：不扣活力（hp_scale=0），金币经验按 scale 放大。"""
+        service = self._adventure_service(with_success=False)
+        return service.apply_reward(
+            text, self.game, self.inventory, self.treasures,
+            self._generate_treasure, self._long_adventure_region(), 1.0,
+            reward_scale=scale, item_scale=1.0, hp_scale=0.0)
+
+    def _long_adventure_send_letter(self, title, body):
+        """投递一封冒险来信（内容写进存档，随存档持久化）。"""
+        return send_adventure_letter(self.game, title, body)
+
+    def start_long_adventure(self, region_id, days):
+        """出发长期冒险：校验 → 扣面包 → 写计划 → 播离场动画。"""
+        if self.adventuring or self.closing or self.hospitalized:
+            return
+        region = REGIONS.get(str(region_id))
+        if region is None:
+            return
+        try:
+            days = int(days)
+        except (TypeError, ValueError):
+            return
+        if days not in LONG_EXPLORE_DAYS:
+            return
+        # 平原不消耗面包，也不适合长住；尚未实装的地区没有日收益口径，同样排除。
+        if not region_supports_long_adventure(region):
+            self._adventure_notice('这个地区不适合长期冒险，请选择低语森林或灰石谷。')
+            return
+        if self.level < int(region.get('min_level', 1)):
+            self._adventure_notice(
+                f"长期冒险需要 {region.get('min_level', 1)} 级，"
+                f"当前 {self.level} 级，先练练级吧。")
+            return
+        if self.hp < HP_LOW_AT:
+            self._adventure_notice('活力值不足 20，无法出发长期冒险。')
+            return
+        service = self._long_adventure_service()
+        bread_cost = service.bread_cost(str(region_id), days)
+        bread_count = InventoryService.count(self.inventory, 'bread')
+        if bread_count < bread_cost:
+            self._adventure_notice(
+                f'面包不足：{days} 天的补给需要 {bread_cost} 个，'
+                f'当前只有 {bread_count} 个。')
+            return
+        if not self.close_warehouse():
+            return
+        self.close_adventure()
+        if bread_cost:
+            InventoryService.remove(self.inventory, 'bread', bread_cost)
+            self._save_satiety()
+        plan = new_plan(str(region_id), days, time.time())
+        plan['bread_cost'] = bread_cost
+        self.game.adventure = plan
+        self._adventure_region = str(region_id)
+        self._adventure_minutes = int(plan['minutes'])
+        self._adventure_bread_cost = bread_cost
+        self._long_adv_total_days = days
+        self._long_adv_last_lines = []
+        self._adventure_treasure_quality_counts = {}
+        self._adventure_end_time = None
+        self.adventuring = True
+        self._adventure_departing = True
+        if self._regen_job is not None:
+            try:
+                self.root.after_cancel(self._regen_job)
+            except Exception:
+                pass
+            self._regen_job = None
+        self._cancel_anim()
+        self._cancel_walk()
+        self._cancel_fall()
+        self._cancel_fling()
+        self._cancel_climb()
+        self._cancel_reach()
+        self._cancel_jump()
+        self._cancel_emotion_face()
+        self.close_scale_window()
+        # 出发记录写进探险日志（不弹窗）：用户随时能在日志里回看计划与消耗。
+        self._log_note([
+            f'【长期冒险出发】{region.get("name", "远方")} · {days} 天',
+            f'补给消耗：面包 ×{bread_cost}（剩余 '
+            f'{InventoryService.count(self.inventory, "bread")} 个）',
+            f'预计归来：{time.strftime("%Y-%m-%d %H:%M", time.localtime(plan["ends_at"]))}',
+            '探险期间可以关掉软件，重新打开后会按原计划继续推进。',
+        ])
+        # 计划先落盘：哪怕离场动画没播完就被关掉，重启后依然能接着走。
+        self._save_satiety()
+        self._update_tray_title()
+        self._start_adventure_departure()
+
+    def _begin_long_adventure_watch(self):
+        """离场完成后启动定期检查；错过的天数在这里立刻补结算。"""
+        plan = self._long_adventure_plan()
+        if not plan:
+            return
+        self._adventure_departing = False
+        self._adventure_end_time = None
+        self._settle_long_adventure_progress(plan, time.time())
+        self._update_tray_title()
+        self._long_adv_job = self.root.after(
+            LONG_ADVENTURE_CHECK_MS, self._long_adventure_tick)
+
+    def _restore_long_adventure(self):
+        """软件重启后恢复长期冒险：补齐进度、继续计时。"""
+        plan = self._long_adventure_plan()
+        if not plan:
+            return False
+        self._adventure_region = str(plan.get('region', '1'))
+        self._adventure_minutes = int(plan.get('minutes', 0) or 0)
+        self._adventure_bread_cost = int(plan.get('bread_cost', 0) or 0)
+        self._long_adv_total_days = int(plan.get('days', 0) or 0)
+        self._long_adv_last_lines = []
+        self.adventuring = True
+        self._adventure_departing = False
+        try:
+            self.root.withdraw()
+        except Exception:
+            pass
+        if self._regen_job is not None:
+            try:
+                self.root.after_cancel(self._regen_job)
+            except Exception:
+                pass
+            self._regen_job = None
+        self._begin_long_adventure_watch()
+        # 回到游戏时如果早该回来了，直接走归来流程。
+        plan = self._long_adventure_plan()
+        if plan and elapsed_days(plan, time.time()) >= int(plan.get('days', 1)):
+            self._finish_long_adventure()
+        return True
+
+    def _long_adventure_tick(self):
+        """长期冒险进度检查：结算已过完的天数，到点则归来。"""
+        self._long_adv_job = None
+        if self.closing or not self.adventuring:
+            return
+        plan = self._long_adventure_plan()
+        if not plan:
+            return
+        now = time.time()
+        self._settle_long_adventure_progress(plan, now)
+        if elapsed_days(plan, now) >= int(plan.get('days', 1) or 1):
+            self._finish_long_adventure()
+            return
+        self._update_tray_title()
+        try:
+            self._refresh_adventure_page()
+        except Exception:
+            pass
+        self._long_adv_job = self.root.after(
+            LONG_ADVENTURE_CHECK_MS, self._long_adventure_tick)
+
+    def _settle_long_adventure_progress(self, plan, now):
+        """把「已经过完但还没结算」的天数逐天结算并写日志。"""
+        service = self._long_adventure_service()
+        pending = [day for day in service.pending_days(plan)
+                   if day <= elapsed_days(plan, now)]
+        if not pending:
+            return []
+        results = service.settle_days(
+            plan, pending, self.game, self.inventory, self.treasures,
+            self._generate_treasure, self._long_adventure_apply_reward,
+            self._long_adventure_send_letter)
+        for day_index, detail in results:
+            self._apply_long_adventure_day(detail)
+        # 途中结算完立刻落盘：退出软件也不会丢已经拿到的收获与来信。
+        self._save_satiety()
+        return results
+
+    def _apply_long_adventure_day(self, detail):
+        """把某一天的结算结果记进日志与属性（金币/物品已在结算时入账）。"""
+        region_name = detail.get('region_name', '远方')
+        lines = [
+            f"【长期冒险 · 第 {detail['day']} 天】{region_name}"
+            f"（剩余约 {self._long_adventure_remaining_text()}）",
+            f"当日收获：金币 +{detail['gold']}、经验 +{detail['xp']}",
+        ]
+        for event in detail.get('lines') or ():
+            detail_text = '、'.join(event.get('parts') or ()) or '无额外收获'
+            lines.append(
+                f"途中事件 · {event.get('name', '见闻')}："
+                f"{event.get('text', '')}（{detail_text}）")
+        drops = []
+        for item_id, count in (detail.get('items') or {}).items():
+            name = (ITEMS.get(item_id) or {}).get('name', item_id)
+            drops.append(f'{name} ×{count}')
+        treasure_count = len(detail.get('treasures') or ())
+        if treasure_count:
+            drops.append(f'宝藏 ×{treasure_count}')
+        if drops:
+            lines.append('随身带回：' + '、'.join(drops))
+        letter = detail.get('letter')
+        if letter:
+            lines.append(f"来信：{letter.get('title', '探险来信')}（已放进仓库·信件）")
+        if detail['xp']:
+            self._gain_exp(int(detail['xp']))
+            StatsService.record_gold_earned(self.game, int(detail['gold']))
+        self._long_adv_last_lines.extend(lines)
+        self._pending_long_adv_lines = list(self._long_adv_last_lines)
+
+    def _long_adventure_remaining_text(self):
+        plan = self._long_adventure_plan()
+        if not plan:
+            return '即将归来'
+        return remaining_text(plan, time.time())
+
+    def _long_adventure_progress_text(self):
+        """「第 X / N 天」进度文本。"""
+        plan = self._long_adventure_plan()
+        if not plan:
+            return ''
+        total = int(plan.get('days', 0) or 0)
+        done = min(total, elapsed_days(plan, time.time()))
+        return f'第 {done} / {total} 天'
+
+    def _finish_long_adventure(self):
+        """长期冒险归来：结算日志、解锁地区背景、恢复桌宠。"""
+        self.motion.finish('adventure_wave', 'idle')
+        self.motion.clear_expression('expression_jump')
+        self._adventure_job = None
+        self._adventure_departing = False
+        self._adventure_end_time = None
+        self.animations.cancel_many('adventure_depart', 'adventure_title')
+        self._adventure_depart_job = None
+        self._adventure_title_job = None
+        if self._long_adv_job is not None:
+            try:
+                self.root.after_cancel(self._long_adv_job)
+            except Exception:
+                pass
+            self._long_adv_job = None
+        if self.closing:
+            return
+        plan = self._long_adventure_plan()
+        region_id = str(plan.get('region', '') or self._adventure_region or '1')
+        region = REGIONS.get(region_id, REGIONS['1'])
+        total_days = int(plan.get('days', 0) or 0) or self._long_adv_total_days
+        minutes = int(plan.get('minutes', 0) or 0) or self._adventure_minutes
+        bread_cost = int(plan.get('bread_cost', 0) or 0)
+        self.adventuring = False
+        self.root.deiconify()
+        self._play_effect_sound(
+            globals().get('ADVENTURE_RETURN_SOUND_PATH', ''), 'ling')
+
+        # 情绪：在外面待了这么多天，多少有点想家。
+        before_emotion = self.emotion
+        emotion_loss = max(0, int(LONG_ADVENTURE_EMOTION_LOSS_PER_DAY)) * max(
+            1, total_days)
+        self.emotion = max(0, self.emotion - emotion_loss)
+        emotion_loss = before_emotion - self.emotion
+
+        StatsService.record_adventure(self.game, region_id, minutes, False)
+        # 来信数优先取计划里累计的值：途中结算过、后来重启过，也不会漏计。
+        try:
+            letter_count = max(0, int(plan.get('letters_sent', 0) or 0))
+        except (TypeError, ValueError):
+            letter_count = 0
+        if not letter_count:
+            letter_count = sum(1 for line in (self._long_adv_last_lines or ())
+                               if str(line).startswith('来信：'))
+        StatsService.record_long_adventure(self.game, total_days, letter_count)
+        background = {'1': 'plain', '2': 'forest', '3': 'valley'}.get(region_id)
+        if background:
+            self.game.backgrounds.add(background)
+
+        log_lines = [
+            f'【长期冒险归来】{region["name"]} · {total_days} 天',
+            f'按计划走完了全程，剩余时间 {self._long_adventure_remaining_text()}。',
+        ]
+        if bread_cost:
+            log_lines.append(f'出发消耗：面包 ×{bread_cost}')
+        # 途中的逐日记录可能很长（离线 30 天会攒几十条），入库前裁一下。
+        detail_lines = list(self._long_adv_last_lines or ['途中一切平安。'])
+        if len(detail_lines) > 40:
+            detail_lines = (['（途中记录较多，这里只保留最近 40 行）'] +
+                            detail_lines[-40:])
+        log_lines.extend(detail_lines)
+        if emotion_loss:
+            log_lines.append(f'情绪 -{emotion_loss}（离家太久）')
+        self._log_note(log_lines)
+
+        # 计划结束，清掉存档里的进行状态。
+        self.game.adventure = {}
+        self._long_adv_total_days = 0
+        self._long_adv_last_lines = []
+        self._pending_long_adv_lines = []
+        self._forced_expression = None
+        self._scratch_wave_style = 'vertical'
+        self._scratch_wave_offset = SCRATCH_OFFSET
+        self._adventure_region = None
+        self._adventure_minutes = 0
+        self._adventure_bread_cost = 0
+        self._adventure_treasure_quality_counts = {}
+        self._event_book = None
+        self._treasure_book = None
+        self._treasure_prefixes = None
+        self._save_satiety()
+        self._refresh_warehouse()
+        self._refresh_market()
+        self._refresh_panel()
+        try:
+            self._refresh_adventure_page()
+        except Exception:
+            pass
+        if self._check_hospital_state():
+            return
+        self.show_pose('normal')
+        self.start_animations()
+        self._schedule_walk_attempt()
+        self._start_fall_check()
+        self._schedule_hp_regen()
+        self._update_tray_title()
+        # 归来不弹窗：完整结果已经写进探险日志（见上面的 log_lines）。
 
 
     def _load_event_book(self):
@@ -456,7 +823,9 @@ class AdventureMixin:
 
         tag = '模拟·' if simulated else ''
         unlocked_hat = self._unlock_treasure_bonuses()
-        log_lines = [f'【{tag}{region["name"]}】{minutes} 分钟 · {region["difficulty"]}']
+        log_lines = [
+            f'【探险归来·{tag}{region["name"]}】{minutes} 分钟 · '
+            f'{region["difficulty"]}']
         if simulated:
             log_lines.append('模拟探险：不消耗面包，其余结算与正常探险一致')
         if unlocked_hat:
@@ -571,7 +940,10 @@ class AdventureMixin:
 
 
     def _confirm_adventure(self, region_id, minutes):
-        """探险出发确认，并显示面包消耗和状态警告。"""
+        """短途探险出发：直接出发，不弹确认框。
+
+        消耗与风险提示由 start_adventure 写进探险日志（见 _log_departure）。
+        """
         region = REGIONS.get(str(region_id))
         if region is None:
             return
@@ -581,31 +953,52 @@ class AdventureMixin:
             return
         if region['fallback'] and minutes not in PLAIN_EXPLORE_TIMES:
             return
-        bread_cost = 0
-        if not region['fallback']:
-            bread_cost = math.ceil(
-                minutes / ADVENTURE_BREAD_MINUTES_PER_UNIT)
-        lines = ['确定要探险吗？']
-        if bread_cost:
-            lines.append(f'探险会消耗 {bread_cost} 个面包。')
-        else:
-            lines.append('风和平原不消耗面包。')
-        if self.level < region.get('min_level', 1) and not region.get('fallback'):
-            lines.append(
-                f'警告：未达最低等级 {region.get("min_level", 1)} 级，'
-                '本次探险的事件成功率固定只有 10%！')
-        elif self.level < region.get('recommended_level', 1):
-            lines.append('警告：等级小于推荐等级')
-        if self.hp < self.max_hp * 0.5:
-            lines.append('警告：猫咪的活力不足')
+        self.start_adventure(str(region_id), minutes)
+
+
+    def _log_note(self, lines):
+        """往探险日志里追加一条记录（不落盘，由调用方决定何时保存）。"""
+        if isinstance(lines, str):
+            lines = [lines]
+        lines = [str(line) for line in lines if str(line or '').strip()]
+        if not lines:
+            return
+        self.logs.append({
+            'time': datetime.datetime.now().strftime('%Y-%m-%d %H:%M'),
+            'lines': lines,
+        })
+        self.logs = self.logs[-20:]
+        self._refresh_log_window()
+
+    def _refresh_log_window(self):
+        """日志窗口开着的话，重新渲染一遍内容。"""
+        win = getattr(self, '_log_win', None)
+        if win is None:
+            return
         try:
-            import tkinter.messagebox as mb
-            if not mb.askyesno('探险确认', '\n'.join(lines)):
+            if not win.winfo_exists():
                 return
         except Exception:
             return
-        self.start_adventure(str(region_id), minutes)
+        try:
+            self._close_log()
+            self.show_log()
+        except Exception:
+            pass
 
+    def _adventure_notice(self, text):
+        """探险校验不通过时的提示：写进日志 + 页面内联红字，不弹窗。"""
+        self._log_note(f'【探险】{text}')
+        try:
+            self._refresh_adventure_page()
+        except Exception:
+            pass
+        label = getattr(self, '_adventure_unlock_label', None)
+        if label is not None:
+            try:
+                label.config(text=str(text))
+            except Exception:
+                pass
 
     def show_log(self):
         """打开探险日志"""
@@ -648,6 +1041,34 @@ class AdventureMixin:
         """取消探险并让猫立即回桌面，不结算也不记录统计。"""
         if not self.adventuring:
             return
+        # 长期冒险的「进度」在存档里，取消时必须把计划一并清掉，
+        # 否则重启又会被恢复成「还在探险」。
+        long_plan = self._long_adventure_plan()
+        if long_plan:
+            region_name = (REGIONS.get(str(long_plan.get('region', ''))) or
+                           {}).get('name', '远方')
+            total_days = int(long_plan.get('days', 0) or 0)
+            settled_days = int(long_plan.get('settled_days', 0) or 0)
+            bread_cost = int(long_plan.get('bread_cost', 0) or 0)
+            self.game.adventure = {}
+            self._long_adv_total_days = 0
+            self._long_adv_last_lines = []
+            self._pending_long_adv_lines = []
+            if self._long_adv_job is not None:
+                try:
+                    self.root.after_cancel(self._long_adv_job)
+                except Exception:
+                    pass
+                self._long_adv_job = None
+            # 取消不弹窗：把中止结果与消耗写进探险日志。
+            cancel_lines = [
+                f'【长期冒险取消】{region_name} · 计划 {total_days} 天，'
+                f'已走 {settled_days} 天',
+                '提前中止，这次途中的收获全部作废。',
+            ]
+            if bread_cost:
+                cancel_lines.append(f'出发时的补给不退还（面包 ×{bread_cost}）。')
+            self._log_note(cancel_lines)
         self.adventuring = False
         self.motion.finish('adventure_wave', 'idle')
         self._forced_expression = None

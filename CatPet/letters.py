@@ -77,13 +77,98 @@ STARTING_LETTER_IDS = tuple(
 LETTER_ORDER = tuple(sorted(
     LETTER_DEFINITIONS, key=lambda letter_id: LETTER_DEFINITIONS[letter_id]['number']))
 
+# ---------- 长期冒险的动态来信 ----------
+# 长期冒险（超过 3 天）途中会阶段性地寄信回家，信的内容每次都不一样，
+# 所以不能写死在 LETTER_DEFINITIONS 里：这里只用前缀 + 递增编号表示一封
+# 「冒险来信」，正文与标题存在存档的 game.letter_contents 里（见下）。
+ADVENTURE_LETTER_PREFIX = 'adv_letter_'
+# 固定信件的编号最大是 4；动态来信从 1000 起排，保证出现在列表最后。
+ADVENTURE_LETTER_NUMBER_BASE = 1000
 
-def get_letter(letter_id):
-    """返回信件展示数据的副本。"""
-    letter = LETTER_DEFINITIONS.get(str(letter_id))
+
+def is_adventure_letter(letter_id):
+    """是不是长期冒险的动态来信。"""
+    return str(letter_id).startswith(ADVENTURE_LETTER_PREFIX)
+
+
+def adventure_letter_number(letter_id):
+    """动态来信的序号（非动态信返回 0）。"""
+    suffix = str(letter_id)[len(ADVENTURE_LETTER_PREFIX):]
+    return int(suffix) if suffix.isdigit() and int(suffix) > 0 else 0
+
+
+def adventure_letter_id(number):
+    """按序号拼出动态来信的键名。"""
+    return f'{ADVENTURE_LETTER_PREFIX}{max(1, int(number)):03d}'
+
+
+def next_adventure_letter_id(game):
+    """存档里下一封冒险来信的键名。"""
+    used = [adventure_letter_number(value)
+            for value in (getattr(game, 'letters', None) or ())]
+    return adventure_letter_id(max(used, default=0) + 1)
+
+
+def is_known_letter(letter_id):
+    """固定信件或已生成的冒险来信都算已知信件。"""
+    letter_id = str(letter_id)
+    if letter_id in LETTER_DEFINITIONS:
+        return True
+    return (is_adventure_letter(letter_id)
+            and adventure_letter_number(letter_id) > 0)
+
+
+def letter_number(letter_id):
+    """信件排序用编号：固定信件用定义里的 number，冒险来信排在最后。"""
+    letter_id = str(letter_id)
+    if letter_id in LETTER_DEFINITIONS:
+        return int(LETTER_DEFINITIONS[letter_id].get('number', 9999))
+    number = adventure_letter_number(letter_id)
+    if number:
+        return ADVENTURE_LETTER_NUMBER_BASE + number
+    return 9999
+
+
+def letter_contents(game):
+    """存档里的动态信件内容表：{信件键: {'title': 标题, 'body': 正文}}。"""
+    contents = getattr(game, 'letter_contents', None)
+    return contents if isinstance(contents, dict) else {}
+
+
+def get_letter(letter_id, contents=None):
+    """返回信件展示数据的副本。
+
+    contents 是存档里的动态信件正文表；传入后固定信件也会用动态正文覆盖，
+    这样长期冒险来信和「同一封信但有不同内容」的情况都能展示。
+    """
+    letter_id = str(letter_id)
+    contents = contents if isinstance(contents, dict) else {}
+    letter = LETTER_DEFINITIONS.get(letter_id)
     if letter is None:
-        return None
+        if not (is_adventure_letter(letter_id)
+                and adventure_letter_number(letter_id) > 0):
+            return None
+        custom = contents.get(letter_id) or {}
+        result = {
+            'id': letter_id,
+            'number': letter_number(letter_id),
+            'title': str(custom.get('title') or '探险来信'),
+            'category': '信件',
+            'kind': '信件',
+            'quality': '特别',
+            'desc': '猫咪在远方寄回来的信。',
+            'presentation': 'text',
+            'body': str(custom.get('body') or '（这封信的字迹被雨水晕开了…）'),
+        }
+        result.setdefault('detail_kind', 'letter')
+        return result
     result = dict(letter)
+    custom = contents.get(letter_id) or {}
+    if custom.get('body'):
+        result['presentation'] = 'text'
+        result['body'] = str(custom['body'])
+    if custom.get('title'):
+        result['title'] = str(custom['title'])
     result.setdefault('detail_kind', 'letter')
     return result
 
@@ -91,7 +176,7 @@ def get_letter(letter_id):
 def send_letter(game, letter_id):
     """把一封信加入存档，重复投递时忽略。"""
     letter_id = str(letter_id)
-    if letter_id not in LETTER_DEFINITIONS:
+    if not is_known_letter(letter_id):
         return False
     letters = getattr(game, 'letters', None)
     if not isinstance(letters, list):
@@ -100,8 +185,29 @@ def send_letter(game, letter_id):
     if letter_id in letters:
         return False
     letters.append(letter_id)
-    letters.sort(key=lambda item: LETTER_DEFINITIONS.get(item, {}).get('number', 9999))
+    letters.sort(key=letter_number)
     return True
+
+
+def send_adventure_letter(game, title, body):
+    """投递一封长期冒险来信，返回键名（失败返回 None）。
+
+    标题与正文写进 game.letter_contents，随存档一起持久化；
+    「冒险途中寄信回来」这一步之后由 SaveService 统一保存。
+    """
+    letter_id = next_adventure_letter_id(game)
+    contents = getattr(game, 'letter_contents', None)
+    if not isinstance(contents, dict):
+        contents = {}
+        game.letter_contents = contents
+    contents[letter_id] = {
+        'title': (str(title).strip() or '探险来信')[:40],
+        'body': str(body),
+    }
+    if not send_letter(game, letter_id):
+        contents.pop(letter_id, None)
+        return None
+    return letter_id
 
 
 # ---------- 信件附件 ----------

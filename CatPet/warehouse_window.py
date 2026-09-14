@@ -4,7 +4,7 @@ import random
 
 from letters import (
     LETTERS, attachment_claimed, claim_letter_attachments, get_letter,
-    letter_attachments)
+    is_known_letter, letter_contents, letter_number, letter_attachments)
 from services import MarketService, InventoryService
 from stats import StatsService
 from ui_theme import THEME, FONT_FAMILY, FONT_SMALL, configure_theme, make_button, make_label, make_card
@@ -889,7 +889,7 @@ class WarehouseMixin:
             pass
         self._refresh_warehouse_tab_indicators()
         self._refresh_warehouse_list()
-        self._show_warehouse_detail(get_letter(letter_id) or info, pinned=True)
+        self._show_warehouse_detail(self._letter_info(letter_id) or info, pinned=True)
         banner = getattr(self, '_warehouse_banner_label', None)
         if banner is not None:
             names = '、'.join(f"{g['name']}×{g['count']}" for g in granted)
@@ -1260,6 +1260,10 @@ class WarehouseMixin:
         return (outer, inner) if detached else inner
 
 
+    def _letter_info(self, letter_id):
+        """取信件展示数据；长期冒险的动态来信正文存在存档里，要一起传进去。"""
+        return get_letter(letter_id, letter_contents(self.game))
+
     def _available_letter_ids(self):
         result = []
         raw_letters = getattr(self.game, 'letters', [])
@@ -1267,14 +1271,14 @@ class WarehouseMixin:
             raw_letters = ()
         for value in raw_letters:
             letter_id = str(value)
-            if letter_id in LETTERS and letter_id not in result:
+            if is_known_letter(letter_id) and letter_id not in result:
                 result.append(letter_id)
-        result.sort(key=lambda item: LETTERS[item]['number'])
+        result.sort(key=letter_number)
         return result
 
 
     def _select_letter(self, letter_id):
-        info = get_letter(letter_id)
+        info = self._letter_info(letter_id)
         if info is None:
             return
         self._selected_letter_id = letter_id
@@ -1304,7 +1308,7 @@ class WarehouseMixin:
             return
         selected_letter = getattr(self, '_selected_letter_id', None)
         for letter_id in letter_ids:
-            info = get_letter(letter_id)
+            info = self._letter_info(letter_id)
             if info is None:
                 continue
             selected = letter_id == selected_letter

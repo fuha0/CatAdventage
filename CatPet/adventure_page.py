@@ -4,11 +4,21 @@ import random
 import tkinter as tk
 import tkinter.ttk as ttk
 
+from services import InventoryService
+from services.long_adventure import region_supports_long_adventure
 from ui_theme import (
     THEME, FONT_FAMILY, configure_theme, make_button, make_label, make_card)
 
 
 ADVENTURE_BANNER_TEXTS = ('整装待发！', '探索新地区！', '脚步不停！')
+
+# 探险方式：short = 短途（5~30 分钟），long = 长期（>3 天，可跨重启）。
+ADVENTURE_MODE_SHORT = 'short'
+ADVENTURE_MODE_LONG = 'long'
+ADVENTURE_MODES = (
+    (ADVENTURE_MODE_SHORT, '短途探险（分钟）'),
+    (ADVENTURE_MODE_LONG, '长期冒险（天）'),
+)
 
 
 class AdventurePageMixin:
@@ -41,6 +51,10 @@ class AdventurePageMixin:
         self._adventure_region_var = tk.StringVar(
             value=REGIONS['1']['name'])
         self._adventure_time_var = tk.StringVar(value='5')
+        # 探险方式：短途（分钟档）或长期（天档，>3 天，重启后继续推进）。
+        self._adventure_mode_var = tk.StringVar(value=ADVENTURE_MODE_SHORT)
+        self._adventure_days_var = tk.StringVar(
+            value=str(LONG_EXPLORE_DAYS[0]))
 
         bottom = tk.Frame(win, bg=page_bg)
         bottom.pack(side='bottom', fill='x', padx=18, pady=(0, 14))
@@ -142,32 +156,74 @@ class AdventurePageMixin:
         self._adventure_region_combo.bind(
             '<<ComboboxSelected>>', self._adventure_region_changed)
 
-        make_label(controls_inner, '探险时间（分钟）', bg=THEME['card_alt'],
+        make_label(controls_inner, '探险方式', bg=THEME['card_alt'],
                    font=(FONT_FAMILY, 10)).grid(
                        row=1, column=0, sticky='w', padx=(0, 10), pady=3)
+        self._adventure_mode_combo = ttk.Combobox(
+            controls_inner, textvariable=self._adventure_mode_var,
+            values=[label for _, label in ADVENTURE_MODES],
+            state='readonly', width=20)
+        self._adventure_mode_combo.grid(
+            row=1, column=1, sticky='ew', pady=3)
+        self._adventure_mode_combo.bind(
+            '<<ComboboxSelected>>', self._adventure_mode_changed)
+
+        # 时长：短途按分钟、长期按天，两行共用一格，切换时只显示其中一行。
+        duration = tk.Frame(controls_inner, bg=THEME['card_alt'])
+        duration.grid(row=2, column=0, columnspan=2, sticky='ew')
+        duration.grid_columnconfigure(1, weight=1)
+        self._adventure_duration_frame = duration
+
+        self._adventure_short_row = tk.Frame(duration, bg=THEME['card_alt'])
+        self._adventure_short_row.grid(
+            row=0, column=0, columnspan=2, sticky='ew')
+        self._adventure_short_row.grid_columnconfigure(1, weight=1)
+        make_label(self._adventure_short_row, '探险时间（分钟）',
+                   bg=THEME['card_alt'],
+                   font=(FONT_FAMILY, 10)).grid(
+                       row=0, column=0, sticky='w', padx=(0, 10), pady=3)
         self._adventure_time_combo = ttk.Combobox(
-            controls_inner, textvariable=self._adventure_time_var,
+            self._adventure_short_row, textvariable=self._adventure_time_var,
             values=[str(x) for x in EXPLORE_TIMES],
             state='readonly', width=20)
         self._adventure_time_combo.grid(
-            row=1, column=1, sticky='ew', pady=3)
+            row=0, column=1, sticky='ew', pady=3)
         self._adventure_time_combo.bind(
             '<<ComboboxSelected>>', self._clear_adventure_combo_selection)
+
+        self._adventure_long_row = tk.Frame(duration, bg=THEME['card_alt'])
+        self._adventure_long_row.grid(
+            row=0, column=0, columnspan=2, sticky='ew')
+        self._adventure_long_row.grid_columnconfigure(1, weight=1)
+        make_label(self._adventure_long_row, '长期冒险时长（天）',
+                   bg=THEME['card_alt'],
+                   font=(FONT_FAMILY, 10)).grid(
+                       row=0, column=0, sticky='w', padx=(0, 10), pady=3)
+        self._adventure_days_combo = ttk.Combobox(
+            self._adventure_long_row, textvariable=self._adventure_days_var,
+            values=[str(x) for x in LONG_EXPLORE_DAYS],
+            state='readonly', width=20)
+        self._adventure_days_combo.grid(
+            row=0, column=1, sticky='ew', pady=3)
+        self._adventure_days_combo.bind(
+            '<<ComboboxSelected>>', self._adventure_mode_changed)
+        self._adventure_long_row.grid_remove()
+
         self._adventure_region_desc_label = make_label(
             controls_inner, '', bg=THEME['card_alt'], fg=THEME['muted'],
             style='small', justify='left', wraplength=500)
         self._adventure_region_desc_label.grid(
-            row=2, column=0, columnspan=2, sticky='w', pady=(6, 2))
+            row=3, column=0, columnspan=2, sticky='w', pady=(6, 2))
         self._adventure_unlock_label = make_label(
             controls_inner, '', bg=THEME['card_alt'], fg='#8B1E1E',
-            style='small', justify='left')
+            style='small', justify='left', wraplength=500)
         self._adventure_unlock_label.grid(
-            row=3, column=0, sticky='w', pady=(9, 0))
+            row=4, column=0, columnspan=2, sticky='w', pady=(9, 0))
         self._adventure_start_button = make_button(
             controls_inner, '开始探险', self._adventure_page_start,
             kind='primary', width=14)
         self._adventure_start_button.grid(
-            row=3, column=1, sticky='e', pady=(9, 0))
+            row=5, column=1, sticky='e', pady=(9, 0))
         make_label(
             right_wrap,
             '高级地区探险会消耗面包；探险可能会影响猫咪的活力或情绪哦！',
@@ -205,6 +261,41 @@ class AdventurePageMixin:
                 names[0] if names else REGIONS['1']['name'])
             self._adventure_region_changed()
 
+    def _adventure_mode(self):
+        """当前探险方式：short / long。"""
+        label = self._adventure_mode_var.get()
+        for key, text in ADVENTURE_MODES:
+            if text == label:
+                return key
+        return ADVENTURE_MODE_SHORT
+
+    def _adventure_long_days(self):
+        try:
+            return int(self._adventure_days_var.get())
+        except (TypeError, ValueError):
+            return LONG_EXPLORE_DAYS[0]
+
+    def _adventure_mode_changed(self, event=None):
+        """切换短途 / 长期：只显示对应的时长行，并刷新提示与按钮文案。"""
+        if event is not None:
+            self._clear_adventure_combo_selection(event)
+        long_mode = self._adventure_mode() == ADVENTURE_MODE_LONG
+        try:
+            if long_mode:
+                self._adventure_short_row.grid_remove()
+                self._adventure_long_row.grid()
+            else:
+                self._adventure_long_row.grid_remove()
+                self._adventure_short_row.grid()
+        except Exception:
+            pass
+        try:
+            self._adventure_start_button.config(
+                text='开始长期冒险' if long_mode else '开始探险')
+        except Exception:
+            pass
+        self._update_adventure_unlock_hint()
+
     def _region_id_from_name(self, name):
         for key, region in REGIONS.items():
             if region.get('name') == name:
@@ -218,14 +309,28 @@ class AdventurePageMixin:
         region = REGIONS.get(region_id, {})
         clear_count = int(getattr(self.game, 'stats', {}).get('forest_clear_count', 0))
         clear_required = int(region.get('unlock_forest_clears', 0) or 0)
-        if clear_required and clear_count < clear_required:
+        long_mode = self._adventure_mode() == ADVENTURE_MODE_LONG
+        if long_mode and not region_supports_long_adventure(region):
+            # 平原（不耗补给）与尚未实装的地区都开不了长期冒险。
+            text = '这个地区不适合长期冒险，请选择低语森林或灰石谷。'
+        elif clear_required and clear_count < clear_required:
             text = f'该地区未解锁，需要低语森林成功结算 {clear_required} 次！'
+        elif long_mode and self.level < int(region.get('min_level', 1)):
+            text = (f"长期冒险需要 {region.get('min_level', 1)} 级，"
+                    f"当前 {self.level} 级，先练练级吧。")
         elif (not region.get('fallback', False)
               and self.level < int(region.get('min_level', 1))):
             text = (f"未达最低等级 {region.get('min_level', 1)} 级，"
                     "可以硬闯，但事件成功率仅 10%！")
         else:
             text = ''
+        if long_mode and not text:
+            days = self._adventure_long_days()
+            cost = self._adventure_long_bread_cost(region_id, days)
+            bread_count = InventoryService.count(self.inventory, 'bread')
+            text = (f'长期冒险 {days} 天，补给需要面包 ×{cost}'
+                    f'（现有 {bread_count} 个）；'
+                    '途中会随机触发事件并寄信回来，关闭软件后进度不丢。')
         try:
             self._adventure_unlock_label.config(text=text)
             if getattr(self, '_adventure_region_desc_label', None) is not None:
@@ -233,6 +338,15 @@ class AdventurePageMixin:
                     text=region.get('description', region.get('desc', '')))
         except Exception:
             pass
+
+    def _adventure_long_bread_cost(self, region_id, days):
+        """长期冒险的面包消耗（与桌面主进程同一口径）。"""
+        region = REGIONS.get(str(region_id), {})
+        try:
+            per_day = max(0, int(region.get('long_bread_per_day', 2) or 0))
+        except (TypeError, ValueError):
+            per_day = 2
+        return per_day * max(1, int(days))
 
     def _clear_adventure_combo_selection(self, event=None):
         combo = event.widget if event is not None else None
@@ -286,9 +400,14 @@ class AdventurePageMixin:
         except Exception:
             pass
         if self.adventuring:
-            status = f'\u63a2\u7d22\u4e2d \u00b7 \u5269\u4f59\u7ea6{self._adventure_remaining_minutes()}\u5206\u949f'
+            plan = self._long_adventure_plan()
+            if plan:
+                status = (f'长期冒险中 · {self._long_adventure_progress_text()} · '
+                          f'剩余约{self._long_adventure_remaining_text()}')
+            else:
+                status = f'探索中 · 剩余约{self._adventure_remaining_minutes()}分钟'
         else:
-            status = '\u8bf7\u9009\u62e9\u5730\u533a\u548c\u65f6\u95f4\uff1a'
+            status = '请选择地区和时间：'
         try:
             self._adventure_status.config(
                 text=status,
@@ -330,6 +449,11 @@ class AdventurePageMixin:
     def _adventure_page_start(self):
         region_id = self._region_id_from_name(
             self._adventure_region_var.get())
+        if self._adventure_mode() == ADVENTURE_MODE_LONG:
+            # 直接出发，不弹确认框：补给消耗与机制已经写在页面提示里，
+            # 校验不通过时由 start_long_adventure 写进探险日志。
+            self.start_long_adventure(region_id, self._adventure_long_days())
+            return
         try:
             minutes = int(self._adventure_time_var.get())
         except (TypeError, ValueError):
@@ -369,6 +493,11 @@ class AdventurePageMixin:
         self._adventure_unlock_label = None
         self._adventure_region_desc_label = None
         self._adventure_start_button = None
+        self._adventure_mode_combo = None
+        self._adventure_days_combo = None
+        self._adventure_short_row = None
+        self._adventure_long_row = None
+        self._adventure_duration_frame = None
 
 
 def install_runtime_globals(namespace):
