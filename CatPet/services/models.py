@@ -20,6 +20,7 @@ class GameState:
     new_item_categories: set = field(default_factory=set)
     special_events: set = field(default_factory=set)
     letters: list = field(default_factory=list)
+    letter_attachments_claimed: set = field(default_factory=set)
     treasures: list = field(default_factory=list)
     logs: list = field(default_factory=list)
     equipped_slots: dict = field(
@@ -41,5 +42,7 @@ class GameState:
     sound_volume: int = 100
     frame_rate: int = 30          # 动画帧率：30 或 60
     click_sound: str = 'cat1'
+    alchemy_level: int = 1        # 炼金等级（工作站「炼药」页）
+    alchemy_exp: int = 0          # 当前炼金等级下的炼金经验
 
 PlayerState = GameState

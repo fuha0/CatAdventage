@@ -23,12 +23,15 @@ class AdventurePageMixin:
             return
         if not self.close_warehouse():
             return
+        close_workstation = getattr(self, 'close_workstation', None)
+        if close_workstation is not None:
+            close_workstation()
         win = tk.Toplevel(self.root)
         win.title('探险')
         win.resizable(False, False)
-        win.attributes('-toolwindow', True)
-        self._hide_from_taskbar(win)
-        win.after(80, lambda w=win: self._hide_from_taskbar(w))
+        # 探险是「页面」，留在任务栏里方便切回来（子弹窗仍然隐藏）。
+        self._show_in_taskbar(win)
+        win.after(80, lambda w=win: self._show_in_taskbar(w))
         win.geometry(f'{dp(960)}x{dp(620)}')
         configure_theme(win)
         page_bg = THEME['bg']
@@ -53,6 +56,12 @@ class AdventurePageMixin:
         make_button(bottom, '总览', self._show_overview,
                     kind='secondary', width=7).pack(
                         side='left', padx=(6, 0))
+        # 工作站索引入口（未解锁时进去会看到解锁提示）。
+        workstation_cmd = getattr(self, 'show_workstation', None)
+        if workstation_cmd is not None:
+            make_button(bottom, '工作站', workstation_cmd,
+                        kind='secondary', width=7).pack(
+                            side='left', padx=(6, 0))
 
         header = tk.Frame(win, bg=page_bg)
         header.pack(side='top', fill='x', padx=18, pady=(14, 0))
@@ -213,7 +222,8 @@ class AdventurePageMixin:
             text = f'该地区未解锁，需要低语森林成功结算 {clear_required} 次！'
         elif (not region.get('fallback', False)
               and self.level < int(region.get('min_level', 1))):
-            text = f"该地区未解锁，需要等级达到 {region.get('min_level', 1)} 级！"
+            text = (f"未达最低等级 {region.get('min_level', 1)} 级，"
+                    "可以硬闯，但事件成功率仅 10%！")
         else:
             text = ''
         try:
@@ -244,17 +254,19 @@ class AdventurePageMixin:
             '1': 'plain', '2': 'forest', '3': 'valley',
         }.get(region_id, 'market')
         self._equip_preview_update()
-        if region_id == '1':
+        allowed_times = (PLAIN_EXPLORE_TIMES if region_id == '1'
+                         else EXPLORE_TIMES)
+        try:
+            current = int(self._adventure_time_var.get())
+        except (TypeError, ValueError):
+            current = 5
+        if current not in allowed_times:
             self._adventure_time_var.set('5')
-            try:
-                self._adventure_time_combo.config(state='disabled')
-            except Exception:
-                pass
-        else:
-            try:
-                self._adventure_time_combo.config(state='readonly')
-            except Exception:
-                pass
+        try:
+            self._adventure_time_combo.config(
+                values=[str(x) for x in allowed_times], state='readonly')
+        except Exception:
+            pass
         self._update_adventure_unlock_hint()
 
     def _refresh_adventure_page(self):

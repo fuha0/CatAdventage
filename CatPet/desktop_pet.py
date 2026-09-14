@@ -22,6 +22,11 @@ from render_cache import RenderCache
 from services import GameState, ProgressionService, SaveService
 from letters import TUTORIAL_LETTER_ID
 from special_events import SpecialEventService
+from potions import (
+    ALCHEMY_RECIPES, POTION_MASKS, format_effect_summary, potion_tier,
+    recipe_desc, recipe_effect_text, recipe_materials_text,
+    register_potion_items, roll_potion_effect, roll_potion_prefix,
+    variant_key)
 from animations import AnimationMixin, DRAG_MODE_IDS
 from editor_enhancements import EditorEnhancementsMixin
 from renderer import RendererMixin, install_runtime_globals as install_renderer_globals
@@ -30,6 +35,7 @@ from warehouse_window import WarehouseMixin, install_runtime_globals as install_
 from market_window import MarketMixin, install_runtime_globals as install_market_globals
 from adventure_window import AdventureMixin, install_runtime_globals as install_adventure_globals
 from adventure_page import AdventurePageMixin, install_runtime_globals as install_adventure_page_globals
+from workstation_window import WorkstationMixin, install_runtime_globals as install_workstation_globals
 from stats import StatsService
 from ui_theme import (
     THEME, FONT_FAMILY, configure_theme, make_button, make_label, make_card)
@@ -81,7 +87,22 @@ def _physical_dpi_scale():
     return 1.0
 
 
+def _declare_app_user_model_id():
+    """给进程一个独立身份，任务栏按钮才会用窗口图标（ui/cat.png）。
+
+    Windows 默认按 exe 路径给进程归组，源码调试时那一组就叫 python.exe，
+    任务栏按钮会跟着显示 Python 的图标；显式声明 ID 后这一组归本程序，
+    再配合 wm iconphoto 就能稳定显示猫的图标。打包成 exe 后同样是这个 ID。
+    """
+    try:
+        _ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID(
+            'CatAdventage.CatPet')
+    except Exception:
+        pass
+
+
 _declare_dpi_awareness()
+_declare_app_user_model_id()
 DPI_SCALE = _physical_dpi_scale()
 
 
@@ -194,10 +215,12 @@ BACKGROUND_MARKET_PATH = _asset_path('Market.png', 'background')
 BACKGROUND_PLAIN_PATH = _asset_path('Plain.png', 'background')
 BACKGROUND_FOREST_PATH = _asset_path('Forest.png', 'background')
 BACKGROUND_VALLEY_PATH = _asset_path('Valley.png', 'background')
-BACKGROUND_VALLEY_PATH = _asset_path('Valley.png', 'background')
+# 炼金间：只作为工作站「炼药」页的固定布景，不进玩家的背景轮换列表。
+BACKGROUND_ALCHEMY_PATH = _asset_path('Alchemy.png', 'background')
 BACKGROUND_PATHS = {
     'market': BACKGROUND_MARKET_PATH, 'plain': BACKGROUND_PLAIN_PATH,
     'forest': BACKGROUND_FOREST_PATH, 'valley': BACKGROUND_VALLEY_PATH,
+    'alchemy': BACKGROUND_ALCHEMY_PATH,
 }
 BACKGROUND_ORDER = ('market', 'plain', 'forest', 'valley')
 SUNGLASSES_PATH = _asset_path('Sunglasses.png', 'ornament')
@@ -462,11 +485,12 @@ QUALITY_NAMES = {
 PREFIX_GRADE_BY_QUALITY = {
     1: 'D级', 2: 'C级', 3: 'B级', 4: 'A级', 5: 'S级', 6: 'S级',
 }
-TREASURE_REGION_MAX_QUALITY = {1: 2, 2: 3, 3: 4}
+TREASURE_REGION_MAX_QUALITY = {1: 2, 2: 3, 3: 4, 4: 5}
 TREASURE_REGION_QUALITY_WEIGHTS = {
     1: {1: 4.0, 2: 1.0},
     2: {1: 2.0, 2: 8.0, 3: 0.4},
     3: {1: 10.0, 2: 35.0, 3: 50.0, 4: 5.0},
+    4: {1: 5.0, 2: 20.0, 3: 40.0, 4: 30.0, 5: 5.0},
 }
 TREASURE_REGION_QUALITY_CAPS = {2: {3: 2}}
 TREASURE_SELL_EMOTION = {1: 0, 2: 0, 3: 1, 4: 4, 5: 9, 6: 15}
@@ -476,6 +500,8 @@ EMOTION_NATURAL_MIN = 40
 EMOTION_NATURAL_MAX = 80
 EMOTION_CHANGE_MS = 5 * 60 * 1000
 HOSPITAL_MS = 3 * 60 * 1000
+# 药水蒙版（炼药产出的药水效果）到期检查间隔。
+POTION_MASK_TICK_MS = 1000
 EMOTION_FACE_FRAME_MS = 30
 CLICK_REACTION_COOLDOWN_MS = 700  # 单击猫咪表情与音效共用的最短间隔
 CLICK_EXPRESSION_DURATION_MS = 1000  # 单击后猫咪改变表情的持续时间
@@ -512,16 +538,40 @@ SATIETY_SAVE_PATH = os.path.join(os.path.expanduser('~'),
 ADVENTURE_REWARD_MIN = 0             # 每次探险基础金币下限（G）
 ADVENTURE_REWARD_MAX = 20            # 每次探险基础金币上限（G）
 EXPLORE_TIMES = (5, 10, 15, 20, 25, 30)  # 低语森林可选时间（5 的倍数，5~30 分钟）
-EXTRA_TREASURE_INTERVAL_MINUTES = 10  # 每满 10 分钟获得一次额外宝藏判定
-EXTRA_TREASURE_CHANCE_FACTOR = 0.60   # 额外宝藏判定几率 = 平均成功率 × 60%
+PLAIN_EXPLORE_TIMES = (5, 10, 15)  # plain allowed durations
 ADVENTURE_BREAD_MINUTES_PER_UNIT = 5  # 非平原地区每 5 分钟消耗 1 个面包
 XP_PLAIN = 50                   # 风和平原基础经验
 XP_FOREST_PER_MIN_MIN = 24      # 低语森林每分钟经验下限
 XP_FOREST_PER_MIN_MAX = 28      # 低语森林每分钟经验上限
 STARTING_BREAD = 10             # 首次进入游戏赠送面包数
 STARTING_GOLD = 20              # 新存档初始金币
-REGION_RECOMMENDED_LEVEL = {1: 5, 2: 15, 3: 20}
-REGION_SUCCESS_LEVELS = {1: 20, 2: 30, 3: 40}
+REGION_RECOMMENDED_LEVEL = {1: 5, 2: 15, 3: 20, 4: 40}
+REGION_SUCCESS_LEVELS = {1: 20, 2: 30, 3: 40, 4: 50}
+
+# 炼金参数（工作站「炼药」页）
+
+# 可倒入炼金锅的材料及其炼金经验：物品键 -> 经验。
+ALCHEMY_MATERIALS = (
+    ('mushroom', 1),      # 蘑菇
+    ('slime', 2),         # 粘液
+    ('green_herb', 3),    # 绿草药
+    ('yellow_herb', 5),   # 黄草药
+    ('red_herb', 7),      # 红草药
+)
+ALCHEMY_MATERIAL_EXP = dict(ALCHEMY_MATERIALS)
+
+# 升到下一级所需炼金经验分档：(等级上限, 该档每级所需经验)。
+# 前 10 级每级 10 点，11~20 级每级 30 点，20 级以后每级 50 点。
+ALCHEMY_XP_TIERS = ((10, 10), (20, 30), (None, 50))
+
+
+def alchemy_xp_to_next(level):
+    """从 level 升到 level+1 所需的炼金经验。"""
+    level = max(1, int(level))
+    for cap, need in ALCHEMY_XP_TIERS:
+        if cap is None or level <= cap:
+            return need
+    return ALCHEMY_XP_TIERS[-1][1]
 
 REGIONS = {
     # 地区编号：平原=1（保底，不消耗面包）
@@ -530,8 +580,8 @@ REGIONS = {
           'extra_treasure_max': 1,
           'treasure_quality_weights': TREASURE_REGION_QUALITY_WEIGHTS[1],
           'treasure_quality_caps': TREASURE_REGION_QUALITY_CAPS.get(1, {}),
-          'description': '风和平原：固定探险 5 分钟，不消耗面包。达到 20 级时事件成功率最高为 80%。',
-          'desc': '推荐 1 级 · 固定 5 分钟' },
+          'description': '风和平原：不消耗面包，探险时间可选5、10或15分钟。等级低于最低要求时成功率固定10%；20级时基准成功率最高95%，实际成功率还会按事件难度（0.7~1.0）打折。',
+          'desc': '推荐 1 级 · 可选 5/10/15 分钟' },
     # 低语森林=2（自由时间 5~30 分钟）
     '2': {'name': '低语森林', 'difficulty': '困难', 'fallback': False,
           'recommended_level': 10, 'min_level': 5,
@@ -539,7 +589,7 @@ REGIONS = {
           'xp_per_min_max': XP_FOREST_PER_MIN_MAX,
           'treasure_quality_weights': TREASURE_REGION_QUALITY_WEIGHTS[2],
           'treasure_quality_caps': TREASURE_REGION_QUALITY_CAPS.get(2, {}),
-          'description': '低语森林：需要等级至少 5，每 5 分钟消耗 1 个面包。达到 30 级时事件成功率最高为 80%，成功结算 3 次后解锁灰石谷。',
+          'description': '低语森林：需要等级至少 5，低于 5 级成功率固定 10%。每 5 分钟消耗 1 个面包，30 级时基准成功率最高 95%（再按事件难度打折），成功结算 3 次后解锁灰石谷。',
           'desc': '推荐 10 级 · 自由 5~30 分钟（5 的倍数）' },
     '3': {'name': '灰石谷', 'difficulty': '极难', 'fallback': False,
           'recommended_level': 20, 'min_level': 15,
@@ -547,9 +597,18 @@ REGIONS = {
           'xp_per_min_max': 26,
           'treasure_quality_weights': TREASURE_REGION_QUALITY_WEIGHTS[3],
           'treasure_quality_caps': TREASURE_REGION_QUALITY_CAPS.get(3, {}),
-          'description': '灰石谷：需要等级至少 15，并且低语森林成功结算 3 次。每 5 分钟消耗 1 个面包，达到 40 级时事件成功率最高为 80%。',
+          'description': '灰石谷：需要等级至少 15，并且低语森林成功结算 3 次，低于 15 级成功率固定 10%。每 5 分钟消耗 1 个面包，40 级时基准成功率最高 95%（再按事件难度打折）。',
           'unlock_forest_clears': 3,
           'desc': '推荐 20 级 · 自由 5~30 分钟（5 的倍数）' },
+    # 圆心湖=4（推荐30~50级）
+    '4': {'name': '圆心湖', 'difficulty': '极难', 'fallback': False,
+          'recommended_level': 40, 'min_level': 30,
+          'xp_per_min_min': 0, 'xp_per_min_max': 0,
+          'extra_treasure_max': 3,
+          'treasure_quality_weights': TREASURE_REGION_QUALITY_WEIGHTS[4],
+          'treasure_quality_caps': TREASURE_REGION_QUALITY_CAPS.get(4, {}),
+          'description': '圆心湖：尚未实装。推荐等级 30~50。',
+          'desc': '推荐 40 级 · 自由 5~30 分钟' },
 }
 
 # 物品 / 集市参数
@@ -726,7 +785,10 @@ ITEMS = {
 CONTENT_REPOSITORY = ContentRepository(
     _asset_dir(), frozen=getattr(sys, 'frozen', False))
 CONTENT_RESULT = CONTENT_REPOSITORY.load(ITEMS)
-ITEMS = CONTENT_RESULT.items
+ITEMS = dict(CONTENT_RESULT.items)
+# 炼药产出的消耗品：物品簿里只写基础药水，前缀变体（5 档 × 4 个 = 20 种）
+# 在代码里生成后补进物品表，合成时随机抽一个前缀。
+POTION_VARIANTS = register_potion_items(ITEMS)
 EVENT_BOOK_CONTENT = CONTENT_RESULT.event_book
 TREASURE_BOOK_CONTENT = CONTENT_RESULT.treasure_book
 TREASURE_PREFIX_CONTENT = CONTENT_RESULT.treasure_prefixes
@@ -766,13 +828,14 @@ install_warehouse_globals(globals())
 install_market_globals(globals())
 install_adventure_globals(globals())
 install_adventure_page_globals(globals())
+install_workstation_globals(globals())
 install_renderer_globals(globals())
 install_interaction_globals(globals())
 install_achievement_globals(globals())
 install_admin_globals(globals())
 
 
-class DesktopPet(RendererMixin, InteractionAnimationMixin, AnimationMixin, EditorEnhancementsMixin, AdminMixin, AchievementMixin, WarehouseMixin, MarketMixin, AdventureMixin, AdventurePageMixin):
+class DesktopPet(RendererMixin, InteractionAnimationMixin, AnimationMixin, EditorEnhancementsMixin, AdminMixin, AchievementMixin, WarehouseMixin, MarketMixin, AdventureMixin, AdventurePageMixin, WorkstationMixin):
     def _show_content_load_errors(self):
         """在终端和发布版窗口中报告 Excel/JSON 内容问题。"""
         errors = list(CONTENT_ERRORS)
@@ -919,13 +982,18 @@ class DesktopPet(RendererMixin, InteractionAnimationMixin, AnimationMixin, Edito
             luck_initial=LUCK_INITIAL, emotion_initial=EMOTION_INITIAL,
             gold_initial=STARTING_GOLD)
         self.game = self.save_service.load()
-        if self.cat_name:
-            try:
-                if SpecialEventService.activate(
-                        self.game, 'first_naming'):
-                    self.save_service.save(self.game)
-            except Exception:
-                pass
+        try:
+            activated = False
+            if self.cat_name:
+                activated = bool(SpecialEventService.activate(
+                    self.game, 'first_naming')) or activated
+            if int(getattr(self.game, 'strength', 0)) >= 13:
+                activated = bool(SpecialEventService.activate(
+                    self.game, 'strength_13')) or activated
+            if activated:
+                self.save_service.save(self.game)
+        except Exception:
+            pass
         try:
             self._loaded_cat_scale = float(
                 getattr(self.game, 'cat_scale', 1.0))
@@ -981,6 +1049,14 @@ class DesktopPet(RendererMixin, InteractionAnimationMixin, AnimationMixin, Edito
         self._log_win = None                 # 探险日志窗口
         self._adventure_win = None           # 探险页面
         self._warehouse_win = None           # 仓库窗口
+        self._workstation_win = None         # 工作站窗口
+        self._workstation_tab = None         # 工作站当前标签
+        self._workstation_tabbar = None      # 工作站标签栏
+        self._workstation_tab_buttons = {}
+        self._workstation_body = None        # 工作站中间内容栏
+        self._workstation_text = None        # 工作站金币文字
+        self._workstation_title_label = None
+        self._workstation_banner_label = None
         self._warehouse_text = None          # 仓库金币文字
         self._warehouse_items = None         # 仓库物品列表容器
         self._warehouse_job = None           # 仓库刷新定时任务
@@ -1051,6 +1127,11 @@ class DesktopPet(RendererMixin, InteractionAnimationMixin, AnimationMixin, Edito
         self._emotion_face_until = 0.0
         self.hospitalized = False            # 是否在住院
         self._hospital_job = None
+        # 药水蒙版：当前生效的持续状态（{蒙版键: 到期时间(monotonic)}）。
+        # 蒙版键会进渲染缓存键，所以单独缓存一份签名，只在变化时更新。
+        self._potion_masks = {}
+        self._potion_mask_signature = ()
+        self._potion_mask_job = None
 
         # 系统托盘相关
         self._tray_icon = None           # pystray 托盘图标
@@ -1159,6 +1240,10 @@ class DesktopPet(RendererMixin, InteractionAnimationMixin, AnimationMixin, Edito
 
         # 全局左键监听：悬浮条打开时，点悬浮条以外任意地方就关闭它
         self.root.bind_all('<Button-1>', self._on_global_click)
+
+        # 窗口 / 任务栏图标：素材里的 ui/cat.png（多档尺寸，见 _load_window_icons）
+        self._window_icons = self._load_window_icons()
+        self._apply_default_window_icon()
 
         # 初始位置 - 屏幕右下角
         self.root.update_idletasks()
@@ -1507,9 +1592,10 @@ class DesktopPet(RendererMixin, InteractionAnimationMixin, AnimationMixin, Edito
             obtained.add(iid)
             changed = True
             category = (ITEMS.get(iid) or {}).get('category')
-            if category in ('物品', '特殊', '装备'):
+            if category in ('物品', '装备'):
                 unseen.add(category)
-            elif category in ('书籍', '头饰', '服装', '饰品'):
+            elif category in ('特殊', '书籍', '头饰', '服装', '饰品'):
+                # 「特殊」已并入装备页的子栏，红点直接点在装备上。
                 unseen.add('装备')
         self.game.obtained_items = obtained
         self.game.new_item_categories = unseen
@@ -1686,6 +1772,60 @@ class DesktopPet(RendererMixin, InteractionAnimationMixin, AnimationMixin, Edito
         self._schedule_hp_regen()
         self._schedule_emotion_change()
 
+    # ---------- 药水蒙版（持续时间状态） ----------
+
+    def refresh_potion_mask_state(self):
+        """清掉已到期的蒙版并更新签名，返回签名是否变化。"""
+        now = time.monotonic()
+        masks = getattr(self, '_potion_masks', None)
+        if not isinstance(masks, dict):
+            masks = {}
+            self._potion_masks = masks
+        for key in [k for k, until in masks.items() if until <= now]:
+            masks.pop(key, None)
+        signature = tuple(sorted(masks))
+        changed = signature != getattr(self, '_potion_mask_signature', ())
+        self._potion_mask_signature = signature
+        return changed
+
+    def active_potion_masks(self):
+        """当前生效的蒙版键元组（渲染层按此叠加蒙版）。"""
+        return tuple(getattr(self, '_potion_mask_signature', ()) or ())
+
+    def start_potion_mask(self, mask_key, duration_ms):
+        """给猫咪叠加一层持续蒙版；同类蒙版取较晚的到期时间。"""
+        spec = POTION_MASKS.get(mask_key)
+        if spec is None or duration_ms <= 0:
+            return False
+        until = time.monotonic() + duration_ms / 1000.0
+        masks = getattr(self, '_potion_masks', None)
+        if not isinstance(masks, dict):
+            masks = {}
+            self._potion_masks = masks
+        masks[mask_key] = max(masks.get(mask_key, 0.0), until)
+        self.refresh_potion_mask_state()
+        self._schedule_potion_mask_tick()
+        self.update_image()
+        return True
+
+    def _schedule_potion_mask_tick(self):
+        if getattr(self, 'closing', False):
+            return
+        if self._potion_mask_job is not None:
+            return
+        if not getattr(self, '_potion_masks', None):
+            return
+        self._potion_mask_job = self.root.after(
+            POTION_MASK_TICK_MS, self._potion_mask_tick)
+
+    def _potion_mask_tick(self):
+        self._potion_mask_job = None
+        if getattr(self, 'closing', False):
+            return
+        if self.refresh_potion_mask_state():
+            self.update_image()
+        self._schedule_potion_mask_tick()
+
     def _schedule_online_tick(self):
         self._online_job = self.root.after(60000, self._record_online_tick)
 
@@ -1773,9 +1913,9 @@ class DesktopPet(RendererMixin, InteractionAnimationMixin, AnimationMixin, Edito
         win = tk.Toplevel(self.root)
         win.title('管理员')
         win.resizable(False, False)
-        win.attributes('-toolwindow', True)
-        self._hide_from_taskbar(win)
-        win.after(80, lambda w=win: self._hide_from_taskbar(w))
+        # 管理员也按「页面」处理，留在 Windows 任务栏中方便切回。
+        self._show_in_taskbar(win)
+        win.after(80, lambda w=win: self._show_in_taskbar(w))
         win.geometry(f'{dp(900)}x{dp(640)}')
         configure_theme(win)
         page_bg = THEME['bg']
@@ -1815,6 +1955,11 @@ class DesktopPet(RendererMixin, InteractionAnimationMixin, AnimationMixin, Edito
         self._admin_hp_label.pack(anchor='w', padx=18, pady=(18, 10))
         sections = (
             ('基础统计', (
+                ('level_exp', '等级与当前经验'),
+                ('exp_earned', '累计获得经验'),
+                ('strength', '力量点数'),
+                ('wisdom', '智慧点数'),
+                ('agility', '敏捷点数'),
                 ('gold_earned', '总共赚了多少钱'),
                 ('purchase_count', '总共买过多少次东西'),
                 ('cat_click_count', '总共单击过多少次猫咪'),
@@ -1835,8 +1980,14 @@ class DesktopPet(RendererMixin, InteractionAnimationMixin, AnimationMixin, Edito
                 ('plain_adventure_count', '平原探险结算次数'),
                 ('forest_adventure_count', '森林探险结算次数'),
                 ('valley_adventure_count', '灰石谷探险结算次数'),
+                ('plain_clear_count', '平原成功结算次数'),
                 ('forest_clear_count', '森林成功结算次数'),
+                ('valley_clear_count', '灰石谷成功结算次数'),
                 ('adventure_minutes', '累计探险时长'),
+            )),
+            ('炼药记录', (
+                ('alchemy_level', '炼药等级'),
+                ('alchemy_craft_count', '炼药次数'),
             )),
             ('交易与喂食', (
                 ('treasure_sold_count', '累计出售宝藏数量'),
@@ -2004,7 +2155,17 @@ class DesktopPet(RendererMixin, InteractionAnimationMixin, AnimationMixin, Edito
         fashion_done = [name for item_id, name in zip(
             ('hairstyle_tool', 'hair_dye', 'lens'), fashion_names)
             if purchased.get(item_id, 0) > 0]
+        try:
+            exp_to_next = max(
+                1, int(ProgressionService.xp_to_next(self.level)))
+        except Exception:
+            exp_to_next = 1
         values = {
+            'level_exp': f'Lv.{self.level}（{self.exp} / {exp_to_next}）',
+            'exp_earned': f"{summary['exp_earned']} 点",
+            'strength': f'{self.strength} 点',
+            'wisdom': f'{self.wisdom} 点',
+            'agility': f'{self.agility} 点',
             'gold_earned': f"{summary['gold_earned']} G",
             'purchase_count': f"{summary['purchase_count']} 次",
             'cat_click_count': f"{summary['cat_click_count']} 次",
@@ -2021,8 +2182,13 @@ class DesktopPet(RendererMixin, InteractionAnimationMixin, AnimationMixin, Edito
             'plain_adventure_count': f"{summary['plain_adventure_count']} 次",
             'forest_adventure_count': f"{summary['forest_adventure_count']} 次",
             'valley_adventure_count': f"{summary['valley_adventure_count']} 次",
+            'plain_clear_count': f"{summary['plain_clear_count']} 次",
             'forest_clear_count': f"{summary['forest_clear_count']} 次",
+            'valley_clear_count': f"{summary['valley_clear_count']} 次",
             'adventure_minutes': f"{summary['adventure_minutes']} 分钟",
+            'alchemy_level': (
+                f"Lv.{max(1, int(getattr(self.game, 'alchemy_level', 1) or 1))}"),
+            'alchemy_craft_count': f"{summary['alchemy_craft_count']} 次",
             'treasure_sold_count': f"{summary['treasure_sold_count']} 件",
             'max_feed_amount': f"{summary['max_feed_amount']} 个",
             'mushroom_damage_count': f"{summary['mushroom_damage_count']} 次",
@@ -2039,7 +2205,14 @@ class DesktopPet(RendererMixin, InteractionAnimationMixin, AnimationMixin, Edito
             return
         try:
             if label.winfo_exists():
-                label.config(text=f'等级：Lv.{self.level}　活力：{self.hp} / {self.max_hp}')
+                summary = StatsService.summary(self.game)
+                exp_to_next = max(
+                    1, int(ProgressionService.xp_to_next(self.level)))
+                label.config(text=(
+                    f'等级：Lv.{self.level}　当前经验：{self.exp} / {exp_to_next}'
+                    f'　累计获得经验：{summary["exp_earned"]}\n'
+                    f'力量：{self.strength}　智慧：{self.wisdom}'
+                    f'　敏捷：{self.agility}　活力：{self.hp} / {self.max_hp}'))
         except Exception:
             pass
         emotion_ent = getattr(self, '_admin_entries', {}).get('emotion')
@@ -2128,8 +2301,7 @@ class DesktopPet(RendererMixin, InteractionAnimationMixin, AnimationMixin, Edito
         self.adventuring = True
         self._finish_adventure(simulated=True)
         self._refresh_admin_hp_label()
-        self.close_admin()
-        self.show_adventure()
+        self._refresh_admin_stats()
 
     def _admin_generate_treasure(self):
         """管理员生成一件全品质随机宝藏并放入宝藏背包。"""
@@ -2444,6 +2616,9 @@ class DesktopPet(RendererMixin, InteractionAnimationMixin, AnimationMixin, Edito
         if (self._warehouse_win is not None
                 and self._warehouse_win.winfo_exists()):
             self._refresh_exp_bar()
+        elif (self._workstation_win is not None
+                and self._workstation_win.winfo_exists()):
+            self._refresh_exp_bar()
         self._schedule_idle_exp()
 
     def _xp_to_next(self):
@@ -2452,11 +2627,40 @@ class DesktopPet(RendererMixin, InteractionAnimationMixin, AnimationMixin, Edito
 
     def _gain_exp(self, amount):
         """获得经验并处理升级；升级时随机提升一项三维属性。"""
-        return ProgressionService.gain_exp(self.game, amount, random)
+        StatsService.record_exp_earned(self.game, amount)
+        gained = ProgressionService.gain_exp(self.game, amount, random)
+        if gained:
+            self._activate_strength_event_if_needed()
+            try:
+                self._check_achievements()
+            except Exception:
+                pass
+        return gained
 
     def _gain_level(self):
         """提升一级，并随机提升力量、智慧或敏捷中的一项。"""
-        return ProgressionService.gain_level(self.game, random)
+        gained = ProgressionService.gain_level(self.game, random)
+        self._activate_strength_event_if_needed()
+        return gained
+
+
+    def _activate_strength_event_if_needed(self):
+        """力量达到门槛时触发巴顿老爷的特殊事件。"""
+        try:
+            if int(getattr(self, 'strength', 0)) < 13:
+                return False
+            activated = SpecialEventService.activate(
+                self.game, 'strength_13')
+        except Exception:
+            return False
+        if not activated:
+            return False
+        self._save_satiety()
+        try:
+            self._refresh_warehouse()
+        except Exception:
+            pass
+        return True
 
     def _spend_skill(self, attr):
         """用技能点强化 力量 或 智慧"""
@@ -2475,6 +2679,7 @@ class DesktopPet(RendererMixin, InteractionAnimationMixin, AnimationMixin, Edito
         self._sync_max_hp()
         self._save_satiety()
         self._refresh_panel()
+        self._activate_strength_event_if_needed()
 
     def close_panel(self):
         """关闭状态窗口"""
@@ -2679,8 +2884,103 @@ class DesktopPet(RendererMixin, InteractionAnimationMixin, AnimationMixin, Edito
                 pass
             self._tray_icon = None
 
+    # ---------- 窗口 / 任务栏图标 ----------
+
+    def _load_window_icons(self):
+        """把素材 `ui/cat.png` 缩成几档 PhotoImage，供窗口图标使用。
+
+        返回的列表必须由调用方长期持有，否则被 GC 回收后图标会掉回默认。
+        注意：Tk 的 `wm iconphoto` 一次只喂**一张**图——混传多张不同尺寸
+        会抛异常，异常被吞掉就会出现「设了图标却没生效」的假象，
+        所以多尺寸这件事交给 `ui/cat.ico`（见 _set_win32_icon）。
+        """
+        path = _asset_path('cat.png', 'ui')
+        if not os.path.exists(path):
+            return []
+        try:
+            from PIL import Image, ImageTk
+            source = Image.open(path).convert('RGBA')
+        except Exception:
+            return []
+        icons = []
+        for size in (256, 128, 64, 32, 16):
+            try:
+                frame = source.resize(
+                    (size, size), Image.Resampling.LANCZOS)
+                icons.append(ImageTk.PhotoImage(frame))
+            except Exception:
+                continue
+        return icons
+
+    def _set_win32_icon(self, win):
+        """再用 Win32 的 WM_SETICON 直接给窗口挂 HICON（图标设置的双保险）。
+
+        Tk 的 `wm iconphoto` 在某些情况下会静默失效（页面窗口切过
+        `-toolwindow` 样式、或喂了多张不同尺寸的图），所以这里再从
+        `ui/cat.ico` 取图标直接发给窗口句柄，任务栏与标题栏都能稳。
+        """
+        icon_file = _asset_path('cat.ico', 'ui')
+        if not os.path.exists(icon_file):
+            return
+        try:
+            import ctypes
+            from ctypes import wintypes
+        except Exception:
+            return
+        try:
+            user32 = ctypes.windll.user32
+            IMAGE_ICON = 1
+            LR_LOADFROMFILE = 0x0010
+            LR_DEFAULTSIZE = 0x0040
+            WM_SETICON = 0x0080
+            ICON_SMALL, ICON_BIG = 0, 1
+            user32.GetParent.restype = wintypes.HWND
+            user32.GetParent.argtypes = [wintypes.HWND]
+            user32.LoadImageW.restype = ctypes.c_void_p
+            user32.LoadImageW.argtypes = [
+                wintypes.HINSTANCE, wintypes.LPCWSTR, wintypes.UINT,
+                ctypes.c_int, ctypes.c_int, wintypes.UINT]
+            user32.SendMessageW.restype = ctypes.c_void_p
+            user32.SendMessageW.argtypes = [
+                wintypes.HWND, wintypes.UINT,
+                ctypes.c_void_p, ctypes.c_void_p]
+            hwnd = user32.GetParent(int(win.winfo_id()))
+            if not hwnd:
+                hwnd = int(win.winfo_id())
+            if not hwnd:
+                return
+            small_side = int(user32.GetSystemMetrics(49)) or 16
+            big = user32.LoadImageW(
+                None, icon_file, IMAGE_ICON, 0, 0,
+                LR_LOADFROMFILE | LR_DEFAULTSIZE)
+            small = user32.LoadImageW(
+                None, icon_file, IMAGE_ICON, small_side, small_side,
+                LR_LOADFROMFILE)
+            if big:
+                user32.SendMessageW(hwnd, WM_SETICON, ICON_BIG, big)
+            if small:
+                user32.SendMessageW(hwnd, WM_SETICON, ICON_SMALL, small)
+        except Exception:
+            pass
+
+    def _apply_default_window_icon(self):
+        """给主窗口挂图标，并登记为「之后新建窗口的默认图标」。"""
+        self._apply_window_icon(self.root)
+
+    def _apply_window_icon(self, win):
+        """给单个窗口设置图标：Tk 层 + Win32 层双保险。"""
+        icons = getattr(self, '_window_icons', None)
+        if icons:
+            try:
+                win.iconphoto(True, icons[0])
+            except Exception:
+                pass
+        self._set_win32_icon(win)
+
     def _hide_from_taskbar(self, win):
         """用 Win32 扩展样式把窗口从任务栏隐藏（去掉 APPWINDOW，加 TOOLWINDOW）"""
+        # 子弹窗不进任务栏，但标题栏小图标仍统一成猫。
+        self._apply_window_icon(win)
         try:
             import ctypes
             user32 = ctypes.windll.user32
@@ -2695,6 +2995,35 @@ class DesktopPet(RendererMixin, InteractionAnimationMixin, AnimationMixin, Edito
             style = (style | WS_EX_TOOLWINDOW) & ~WS_EX_APPWINDOW
             user32.SetWindowLongW(hwnd, GWL_EXSTYLE, style)
             # 刷新窗口样式
+            user32.SetWindowPos(hwnd, 0, 0, 0, 0, 0,
+                                0x0001 | 0x0002 | 0x0004 | 0x0020 | 0x0040)
+        except Exception:
+            pass
+
+    def _show_in_taskbar(self, win):
+        """让窗口出现在 Windows 任务栏（与 _hide_from_taskbar 相反）。
+
+        仓库 / 工作站 / 集市 / 探险这类「页面」用它在任务栏留一个按钮，
+        方便用任务栏或 Alt+Tab 找回来；颜色面板、一键出售、信件大图这类
+        子弹窗仍然走 _hide_from_taskbar。
+        """
+        try:
+            win.attributes('-toolwindow', False)
+        except Exception:
+            pass
+        self._apply_window_icon(win)
+        try:
+            import ctypes
+            user32 = ctypes.windll.user32
+            GWL_EXSTYLE = -20
+            WS_EX_TOOLWINDOW = 0x00000080
+            WS_EX_APPWINDOW = 0x00040000
+            hwnd = user32.GetParent(int(win.winfo_id()))
+            if not hwnd:
+                hwnd = int(win.winfo_id())
+            style = user32.GetWindowLongW(hwnd, GWL_EXSTYLE)
+            style = (style & ~WS_EX_TOOLWINDOW) | WS_EX_APPWINDOW
+            user32.SetWindowLongW(hwnd, GWL_EXSTYLE, style)
             user32.SetWindowPos(hwnd, 0, 0, 0, 0, 0,
                                 0x0001 | 0x0002 | 0x0004 | 0x0020 | 0x0040)
         except Exception:
@@ -2837,6 +3166,7 @@ class DesktopPet(RendererMixin, InteractionAnimationMixin, AnimationMixin, Edito
         menu.add_command(label='仓库', command=self.show_warehouse)
         menu.add_command(label='集市', command=self.show_market)
         menu.add_command(label='探险', command=self.show_adventure)
+        menu.add_command(label='工作站', command=self.show_workstation)
         menu.add_command(label='管理员', command=self.show_admin)
         menu.add_separator()
         # 比例：点击后弹出无边框悬浮滑块条，拖动滑块即可改变大小；
@@ -3105,6 +3435,7 @@ class DesktopPet(RendererMixin, InteractionAnimationMixin, AnimationMixin, Edito
         self.close_admin()
         self.close_market()
         self.close_adventure()
+        self.close_workstation()
         self._close_log()
         self.adventuring = False
         self._adventure_departing = False

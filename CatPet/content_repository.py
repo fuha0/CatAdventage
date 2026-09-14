@@ -295,7 +295,10 @@ class ContentRepository:
     def _set_market_fields(self, info, row, columns, sheet_title, row_no,
                            errors):
         category = str(info.get('category', ''))
-        is_loot = category == '战利品'
+        # 「战利品」既可以是一张独立工作表（旧做法），也可以是物品页的
+        # 「类型」列取值（新做法，见物品簿说明第 9/11 条）。
+        is_loot = (category == '战利品'
+                   or str(info.get('kind', '')) == '战利品')
         legacy_price = self._optional_price(self._cell(row, columns, '价格'))
         buy_value = self._cell(row, columns, '购买价格')
         buy_price = (legacy_price if buy_value in (None, '')
@@ -336,7 +339,10 @@ class ContentRepository:
     @classmethod
     def _normalize_market_fields(cls, info):
         category = str(info.get('category', ''))
-        is_loot = category == '战利品'
+        # 「战利品」既可以是一张独立工作表（旧做法），也可以是物品页的
+        # 「类型」列取值（新做法，见物品簿说明第 9/11 条）。
+        is_loot = (category == '战利品'
+                   or str(info.get('kind', '')) == '战利品')
         buy_price = info.get('buy_price')
         if buy_price is None:
             buy_price = info.get('price')
@@ -680,11 +686,18 @@ class ContentRepository:
                         continue
                     raw_difficulty = self._cell(row, columns, '事件难度')
                     try:
-                        difficulty = max(1, int(float(raw_difficulty)))
+                        # 事件难度是 0.70~1.00 的小数（越接近 1 越难，
+                        # 作为成功率的乘数）。旧数据里的整数 1/2 也照收。
+                        difficulty = float(raw_difficulty)
                     except (TypeError, ValueError):
                         errors.append(
                             f'{self.EVENT_FILE} / {sheet.title} / 第{row_no}行：事件难度“{raw_difficulty}”不是数字')
                         continue
+                    if difficulty <= 0:
+                        errors.append(
+                            f'{self.EVENT_FILE} / {sheet.title} / 第{row_no}行：事件难度不能小于等于 0')
+                        continue
+                    difficulty = round(difficulty, 4)
                     events.append({
                         'id': event_number,
                         'name': name,
@@ -814,13 +827,16 @@ class ContentRepository:
                 errors.append(f'{source}：第{index}个事件 regions 必须是数组')
                 continue
             try:
-                difficulty = max(1, int(event.get('difficulty', 1)))
+                difficulty = float(event.get('difficulty', 1))
             except (TypeError, ValueError):
                 errors.append(f'{source}：第{index}个事件 difficulty 不是数字')
                 continue
+            if difficulty <= 0:
+                errors.append(f'{source}：第{index}个事件 difficulty 必须大于 0')
+                continue
             result.append({**event,
                            'regions': {int(v) for v in regions},
-                           'difficulty': difficulty})
+                           'difficulty': round(difficulty, 4)})
         return result
 
     def _validate_treasure_rows(self, rows, errors):

@@ -3,54 +3,90 @@ import re
 from .inventory import InventoryService
 
 
+# 等级未达到地区最低要求时，事件成功率固定为这个值（不随等级和事件难度浮动）。
+BELOW_MIN_LEVEL_CHANCE = 0.10
+# 事件难度的取值区间（0.70~1.00），越接近 1 越难、成功率越低。
+DIFFICULTY_MIN = 0.70
+DIFFICULTY_MAX = 1.00
+
+
 class AdventureService:
     def __init__(self, items, recommended_levels, quality_names,
-                 rng=None, success_levels=None, max_success=0.8):
+                 rng=None, success_levels=None, max_success=0.95,
+                 min_levels=None):
         self.items = items
         self.recommended_levels = recommended_levels
         self.quality_names = quality_names
         self.rng = rng or random
         self.success_levels = dict(success_levels or {})
-        self.max_success = max(0.2, min(0.8, float(max_success)))
-        self.success_levels = dict(success_levels or {})
-        self.max_success = max(0.2, min(0.8, float(max_success)))
+        self.max_success = max(0.2, min(0.95, float(max_success)))
+        # 各地区的最低准入等级：不满足时成功率固定为 BELOW_MIN_LEVEL_CHANCE。
+        self.min_levels = dict(min_levels or {})
         self.item_by_name = {
             data.get('name'): item_id
             for item_id, data in items.items()
             if data.get('name')
         }
 
+    @staticmethod
+    def difficulty_factor(difficulty):
+        """事件难度系数（0.70~1.00），作为成功率的最后一个乘数。"""
+        try:
+            value = float(difficulty)
+        except (TypeError, ValueError):
+            return DIFFICULTY_MAX
+        return min(DIFFICULTY_MAX, max(0.1, value))
+
     def success_chance(self, level, difficulty, region_id=1):
+        """事件成功率。
+
+        - 等级低于该地区最低等级：固定 10%（不再按 20% 起算）。
+        - 达到最低等级后：clamp(等级 / 满成功率等级, 20%, 95%)，再乘事件难度系数。
+          事件难度仅在此处参与判定，不参与扣血。
+        """
         try:
             region_number = int(region_id)
         except (TypeError, ValueError):
             region_number = 1
+        level = max(1, int(level))
+        min_level = max(1, int(self.min_levels.get(region_number, 1)))
+        if level < min_level:
+            return BELOW_MIN_LEVEL_CHANCE
         required_level = max(1, int(self.success_levels.get(region_number, 30)))
-        ratio = max(1, int(level)) / float(required_level)
-        return max(0.2, min(self.max_success, ratio))
+        ratio = level / float(required_level)
+        base = max(0.2, min(self.max_success, ratio))
+        return base * self.difficulty_factor(difficulty)
 
     @staticmethod
     def personalize_description(text, state):
         name = str(getattr(state, 'cat_name', '') or '猫猫').strip() or '猫猫'
         return str(text).replace('你', name)
 
-    def event_damage(self, state, region_id, severity, difficulty):
+    def event_damage(self, state, region_id, severity, difficulty=None):
+        """按惩罚强度（severity）、地区和当前等级计算实际扣血。
+
+        事件难度已不再参与扣血：难度原先的「放大伤害」作用已经折算进事件簿
+        的「失败惩罚」数值本身（= 旧难度 × 原 severity），因此这里只按 severity
+        计算，难度只管成功率。保留 difficulty 参数仅为兼容调用方签名。
+        """
         try:
             region_number = int(region_id)
         except (TypeError, ValueError):
             region_number = 1
-        difficulty = max(1, int(difficulty))
-        severity = max(1, int(severity))
+        try:
+            severity = max(0.1, float(severity))
+        except (TypeError, ValueError):
+            severity = 1.0
         recommended = self.recommended_levels.get(region_number, 15)
         level = max(1, int(state.level))
         severity_factor = max(0.75, severity / 2.0)
-        base = difficulty * self.rng.uniform(6.0, 8.5) * severity_factor
+        base = self.rng.uniform(6.0, 8.5) * severity_factor
         if level < recommended:
             level_factor = 1.0 + min(0.9, (recommended - level) * 0.08)
         else:
             level_factor = max(0.35, 1.0 - (level - recommended) * 0.04)
-        damage = max(1, round(base * level_factor))
-        return min(damage, max(1, round(state.max_hp * 0.45)))
+        damage = max(1, round(base * level_factor)) * 5
+        return min(damage, max(1, int(state.max_hp)))
 
     def apply_reward(self, text, state, inventory, treasures,
                      treasure_factory, region_id=1, difficulty=1):
@@ -69,19 +105,22 @@ class AdventureService:
             if not token:
                 continue
             match = re.fullmatch(
-                r'(经验|金币|生命|活力)\s*([+＋\-－])\s*(\d+)', token)
+                r'(经验|金币|生命|活力)\s*([+＋\-－])\s*(\d+(?:\.\d+)?)',
+                token)
             if match:
                 kind = match.group(1)
                 sign = -1 if match.group(2) in '－-' else 1
-                amount = sign * int(match.group(3))
+                # 生命/活力允许小数（失败惩罚的数值已按旧的事件难度折算过）。
+                amount = sign * float(match.group(3))
                 if kind == '经验':
-                    if amount > 0:
-                        result['xp'] += amount
-                        result['parts'].append(f'经验+{amount}')
+                    gained = int(amount)
+                    if gained > 0:
+                        result['xp'] += gained
+                        result['parts'].append(f'经验+{gained}')
                     continue
                 if kind == '金币':
                     before = state.gold
-                    state.gold = max(0, state.gold + amount)
+                    state.gold = max(0, state.gold + int(amount))
                     actual = state.gold - before
                     result['gold_delta'] += actual
                     if actual:
@@ -93,7 +132,7 @@ class AdventureService:
                         state, region_id, abs(amount), difficulty)
                     state.hp = max(0, state.hp - damage)
                 else:
-                    state.hp = min(state.max_hp, state.hp + amount)
+                    state.hp = min(state.max_hp, state.hp + int(amount))
                 actual = state.hp - before
                 result['hp_delta'] += actual
                 if actual:
@@ -159,7 +198,7 @@ class AdventureService:
         result = {
             'xp': 0, 'gold_delta': 0, 'hp_delta': 0,
             'inventory_delta': {}, 'treasures': [],
-            'failed_early': False, 'lines': [],
+            'failed_early': False, 'failure_count': 0, 'lines': [],
             'average_success': 0.0,
         }
         chances = []
@@ -173,7 +212,9 @@ class AdventureService:
             result['lines'].append('事件簿中没有该地区可用事件')
             return result
 
-        for minute_no in range(1, max(1, int(minutes)) + 1):
+        event_count = max(1, int(minutes) // 5)
+        for event_index in range(1, event_count + 1):
+            minute_no = event_index * 5
             event = self.rng.choice(pool)
             chance = self.success_chance(
                 state.level, event['difficulty'], region_number)
@@ -192,6 +233,7 @@ class AdventureService:
                                if options else failure_text)
                 reward_text = event['failure_penalty']
                 state_text = '失败'
+                result['failure_count'] += 1
             description = self.personalize_description(description, state)
             applied = self.apply_reward(
                 reward_text, state, inventory, treasures,

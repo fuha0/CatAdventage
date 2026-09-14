@@ -2,8 +2,10 @@
 """WarehouseMixin 独立模块。"""
 import random
 
-from letters import LETTERS, get_letter
-from services import MarketService
+from letters import (
+    LETTERS, attachment_claimed, claim_letter_attachments, get_letter,
+    letter_attachments)
+from services import MarketService, InventoryService
 from stats import StatsService
 from ui_theme import THEME, FONT_FAMILY, FONT_SMALL, configure_theme, make_button, make_label, make_card
 
@@ -19,12 +21,12 @@ WAREHOUSE_EQUIP_WIDTH = 1120
 WAREHOUSE_HEIGHT = 620
 WAREHOUSE_DETAIL_WIDTH = 280
 WAREHOUSE_LETTER_DETAIL_WIDTH = 520
-NEW_ITEM_PAGES = ('物品', '特殊', '装备')
+NEW_ITEM_PAGES = ('物品', '装备')
 PREVIEW_BOUNCE_FRAMES = (
     (1.12, 0.82), (0.94, 1.14), (1.05, 0.96),
     (0.98, 1.03), (1.0, 1.0),
 )
-WAREHOUSE_BANNER_TEXTS = ('日积月累！', '让我找找...', '吃什么好呢？')
+WAREHOUSE_BANNER_TEXTS = ('日积月累！', '让我找找...', '吃什么好呢？', '猫咪整理中...', '正在翻找小宝贝！')
 
 
 class WarehouseMixin:
@@ -40,12 +42,16 @@ class WarehouseMixin:
             self._warehouse_win.lift()
             self._refresh_warehouse()
             return
+        # 与工作站互斥：两者共用预览、数值条、成就选择器等构件。
+        close_workstation = getattr(self, 'close_workstation', None)
+        if close_workstation is not None:
+            close_workstation()
         win = tk.Toplevel(self.root)
         win.title('仓库')
         win.resizable(False, False)
-        win.attributes('-toolwindow', True)
-        self._hide_from_taskbar(win)
-        win.after(80, lambda w=win: self._hide_from_taskbar(w))
+        # 仓库是「页面」，留在任务栏里方便切回来（子弹窗仍然隐藏）。
+        self._show_in_taskbar(win)
+        win.after(80, lambda w=win: self._show_in_taskbar(w))
         configure_theme(win)
         win.geometry(
             f'{dp(WAREHOUSE_WIDTH)}x{dp(WAREHOUSE_HEIGHT)}')
@@ -61,6 +67,10 @@ class WarehouseMixin:
         self._exp_flash_job = None
         page_bg = THEME['bg']
         self._preview_background_key = None
+        # 可选：把模特钉在布景的指定位置（(脚底中心 x, 脚底 y)，帧内像素）。
+        self._preview_anchor = None
+        # 可选：覆盖模特的显示尺寸（帧内像素）。
+        self._preview_cat_size = None
         win.configure(bg=page_bg)
 
         # 底部：金币 + 经验条 + 确定（右下角）
@@ -74,6 +84,11 @@ class WarehouseMixin:
                     kind='secondary', width=7).pack(side='left', padx=(6, 0))
         make_button(bottom, '总览', self._show_overview, kind='secondary',
                     width=7).pack(side='left', padx=(6, 0))
+        # 工作站索引入口（未解锁时进去会看到解锁提示）。
+        workstation_cmd = getattr(self, 'show_workstation', None)
+        if workstation_cmd is not None:
+            make_button(bottom, '工作站', workstation_cmd, kind='secondary',
+                        width=7).pack(side='left', padx=(6, 0))
         exp_row = tk.Frame(bottom, bg=page_bg)
         exp_row.pack(side='left', padx=(12, 0))
         self._exp_level_label = make_label(
@@ -107,7 +122,7 @@ class WarehouseMixin:
             fg=THEME['accent_hover'], font=(FONT_FAMILY, 13, 'bold'))
         self._warehouse_banner_label.pack(
             side='left', anchor='center', padx=(18, 0))
-        self._warehouse_cats = ('物品', '特殊', '宝藏', '信件', '｜', '装备')
+        self._warehouse_cats = ('物品', '宝藏', '信件', '｜', '装备')
         self._warehouse_buttons = {}
         self._warehouse_tab_badges = {}
         for cat in reversed(self._warehouse_cats):
@@ -347,11 +362,12 @@ class WarehouseMixin:
             child.destroy()
         self._equip_subbuttons = {}
         if cat == '装备':
-            slots = ('书籍', '头饰', '服装', '饰品')
+            # 「特殊」（一次性道具）已并入装备子栏，与服装/饰品等并列。
+            slots = ('书籍', '头饰', '服装', '饰品', '特殊')
             selected = getattr(self, '_equip_slot', '头饰')
             command = self._select_equip_subpage
         elif cat == '物品':
-            slots = ('材料', '食物', '战利品')
+            slots = ('材料', '食物', '消耗品', '战利品')
             selected = getattr(self, '_item_subpage', '食物')
             command = self._select_item_subpage
         else:
@@ -401,6 +417,11 @@ class WarehouseMixin:
         """刷新仓库：金币、经验条、预览、右侧列表"""
         if (self._warehouse_win is None
                 or not self._warehouse_win.winfo_exists()):
+            # 仓库没开时，若工作站开着就同步刷新（两者共用数值条与预览构件）。
+            workstation_win = getattr(self, '_workstation_win', None)
+            if (workstation_win is not None
+                    and workstation_win.winfo_exists()):
+                self._refresh_workstation()
             return
         self._record_obtained_items()
         self._refresh_warehouse_tab_indicators()
@@ -668,9 +689,9 @@ class WarehouseMixin:
 
 
     def _render_letter_text_detail(self, content, info):
-        """没有信封的信件直接在详情栏中显示可滚动正文。"""
+        """没有图片的信件直接在详情栏中显示可滚动正文。"""
         make_label(
-            content, info.get('title', '信件'), bg=THEME['card'],
+            content, '信件', bg=THEME['card'],
             fg=THEME['text'], font=(FONT_FAMILY, 11, 'bold'),
             anchor='w', justify='left').pack(fill='x', padx=14, pady=(14, 6))
         body = info.get('body') or info.get('desc', '（暂无内容）')
@@ -692,50 +713,350 @@ class WarehouseMixin:
         text.config(state='disabled')
 
 
-    def _render_letter_warehouse_detail(self, content, info):
-        """把信封和信件正文合成后铺进物品详情栏。"""
-        if info.get('presentation') != 'envelope':
-            self._render_letter_text_detail(content, info)
-            return
-        cache = getattr(self, '_letter_detail_photo_cache', {})
-        letter_id = str(info.get('id', ''))
-        photo = cache.get(letter_id)
-        if photo is not None:
-            self._letter_detail_photo = photo
-            make_label(
-                content, image=photo,
-                bg=THEME['card']).pack(expand=True, padx=10, pady=10)
-            return
+    def _load_letter_image(self, info):
+        image_path = info.get('content_image') or info.get('image')
+        if not image_path:
+            return None
+        with PIL.Image.open(self._letter_asset_path(image_path)) as raw:
+            return raw.convert('RGBA')
+
+
+    def _render_letter_image_detail(self, content, info):
+        """在仓库详情栏尽量放大显示信件图片，点击后打开可缩放子页。"""
+        make_label(
+            content, '信件', bg=THEME['card'],
+            fg=THEME['text'], font=(FONT_FAMILY, 11, 'bold'),
+            anchor='w', justify='left').pack(
+                fill='x', padx=14, pady=(14, 4))
         try:
-            envelope = PIL.Image.open(
-                self._letter_asset_path(info['envelope'])).convert('RGBA')
-            letter_content = PIL.Image.open(
-                self._letter_asset_path(info['content_image'])).convert('RGBA')
-            if letter_content.size != envelope.size:
-                letter_content = letter_content.resize(
-                    envelope.size, PIL.Image.Resampling.LANCZOS)
-            image = PIL.Image.alpha_composite(envelope, letter_content)
-            max_width = 400
-            max_height = 470
-            scale = min(max_width / image.width, max_height / image.height)
-            if scale < 1.0:
-                image = image.resize(
-                    (max(1, round(image.width * scale)),
-                     max(1, round(image.height * scale))),
-                    PIL.Image.Resampling.LANCZOS)
-            photo = PIL.ImageTk.PhotoImage(image)
-            cache[letter_id] = photo
-            self._letter_detail_photo_cache = cache
+            image = self._load_letter_image(info)
+            if image is None:
+                raise ValueError('missing letter image')
+            content.update_idletasks()
+            available_width = int(content.winfo_width() or 0)
+            if available_width < 240:
+                available_width = 500
+            target_width = max(1, min(image.width, available_width - 22))
+            scale = target_width / image.width
+            target_height = max(1, round(image.height * scale))
+            preview = image.resize(
+                (target_width, target_height), PIL.Image.Resampling.LANCZOS)
+            photo = PIL.ImageTk.PhotoImage(preview)
             self._letter_detail_photo = photo
+
+            holder = tk.Frame(content, bg=THEME['card'])
+            holder.pack(fill='both', expand=True, padx=10, pady=(0, 4))
+            canvas = tk.Canvas(
+                holder, bg=THEME['card'], highlightthickness=0,
+                cursor='hand2')
+            scrollbar = tk.Scrollbar(
+                holder, orient='vertical', command=canvas.yview,
+                width=10, bd=0, highlightthickness=0,
+                troughcolor=THEME['card_alt'], bg=THEME['border'])
+            canvas.configure(yscrollcommand=scrollbar.set)
+            scrollbar.pack(side='right', fill='y')
+            canvas.pack(side='left', fill='both', expand=True)
+            canvas.create_image(0, 0, image=photo, anchor='nw')
+            canvas.configure(
+                scrollregion=(0, 0, target_width, target_height))
+            canvas.bind(
+                '<Button-1>',
+                lambda event, data=dict(info): self._open_letter_image_viewer(data))
+            canvas.bind(
+                '<MouseWheel>',
+                lambda event: (
+                    canvas.yview_scroll(
+                        -3 if event.delta > 0 else 3, 'units'),
+                    'break')[1])
             make_label(
-                content, image=photo,
-                bg=THEME['card']).pack(expand=True, padx=10, pady=10)
+                content, '点击查看大图 · 鼠标滚轮浏览', bg=THEME['card'],
+                fg=THEME['muted'], font=(FONT_FAMILY, 8)).pack(
+                    pady=(0, 10))
         except Exception:
             make_label(
                 content, info.get('desc', '信件内容暂时无法显示。'),
                 bg=THEME['card'], fg=THEME['text'],
                 font=(FONT_FAMILY, 9), justify='left', anchor='w',
                 wraplength=440).pack(fill='x', padx=18, pady=18)
+
+
+    def _render_letter_warehouse_detail(self, content, info):
+        """按信件定义选择图片或文字详情。"""
+        if info.get('presentation') == 'text' or info.get('body'):
+            self._render_letter_text_detail(content, info)
+        else:
+            self._render_letter_image_detail(content, info)
+        self._render_letter_attachment_section(content, info)
+
+
+    def _pack_before_expanding(self, content, widget):
+        """把附件区插到详情栏里「会吃掉剩余空间」的那个控件之前。
+
+        正文 / 图片区是 expand 的，谁后 pack 谁就可能被挤没；
+        附件区（含「领取附件」按钮）必须排在它前面才一定看得见。
+        """
+        anchor = None
+        for child in content.winfo_children():
+            if child is widget:
+                continue
+            try:
+                info = child.pack_info()
+            except Exception:
+                continue
+            if str(info.get('expand', 0)) in ('1', 'True', 'true'):
+                anchor = child
+                break
+        if anchor is not None:
+            widget.pack(fill='x', side='top', before=anchor)
+        else:
+            widget.pack(fill='x')
+
+
+    def _render_letter_attachment_section(self, content, info):
+        """信件详情栏的附件区：附件要手动点「领取附件」才会入包。"""
+        attachments = letter_attachments(info.get('id'))
+        if not attachments:
+            return
+        items = globals().get('ITEMS') or {}
+        letter_id = info.get('id')
+        claimed = attachment_claimed(self.game, letter_id)
+        section = tk.Frame(content, bg=THEME['card'])
+        tk.Frame(section, bg=THEME['border'], height=1).pack(
+            fill='x', padx=14, pady=(10, 0))
+        head = tk.Frame(section, bg=THEME['card'])
+        head.pack(fill='x', padx=14, pady=(7, 2))
+        make_label(
+            head, '附件', bg=THEME['card'], fg=THEME['text'],
+            font=(FONT_FAMILY, 10, 'bold')).pack(side='left')
+        make_label(
+            head, '已领取' if claimed else '等待领取', bg=THEME['card'],
+            fg=THEME['success'] if claimed else THEME['danger'],
+            font=(FONT_FAMILY, 9, 'bold')).pack(side='right')
+        for entry in attachments:
+            item_id = entry['item']
+            detail = items.get(item_id) or {}
+            name = detail.get('name') or item_id
+            color = self._quality_color(detail) if detail else THEME['text']
+            row = make_card(
+                section, bg=THEME['card'], highlightbackground=color,
+                highlightcolor=color, highlightthickness=1)
+            row.pack(fill='x', padx=14, pady=(2, 2))
+            title_row = tk.Frame(row, bg=THEME['card'])
+            title_row.pack(fill='x', padx=8, pady=(6, 0))
+            make_label(
+                title_row, f'{name} × {entry["count"]}', bg=THEME['card'],
+                fg=color, font=(FONT_FAMILY, 10, 'bold'),
+                anchor='w').pack(side='left')
+            quality = detail.get('quality')
+            if quality:
+                make_label(
+                    title_row, f'（{quality}）', bg=THEME['card'], fg=color,
+                    font=(FONT_FAMILY, 9)).pack(side='left', padx=(4, 0))
+            if not claimed:
+                make_button(
+                    title_row, '领取附件',
+                    lambda i=dict(info): self._claim_letter_attachment(i),
+                    kind='primary', width=9).pack(side='right')
+            desc = detail.get('desc')
+            if desc:
+                make_label(
+                    row, desc, bg=THEME['card'], fg=THEME['muted'],
+                    font=(FONT_FAMILY, 9), justify='left', anchor='w',
+                    wraplength=430).pack(fill='x', padx=8, pady=(2, 6))
+            else:
+                tk.Frame(row, bg=THEME['card'], height=6).pack(fill='x')
+        make_label(
+            section,
+            ('附件已经收进仓库，可在「特殊」页查看。' if claimed
+             else '点击「领取附件」后，附件才会收进仓库。'),
+            bg=THEME['card'], fg=THEME['muted'], font=(FONT_FAMILY, 8),
+            justify='left', anchor='w').pack(
+                fill='x', padx=14, pady=(2, 10))
+        self._pack_before_expanding(content, section)
+
+
+    def _claim_letter_attachment(self, info):
+        """领取信件附件：入包 + 写存档 + 刷新界面（领过的不会重复发放）。"""
+        letter_id = info.get('id')
+        granted, error = claim_letter_attachments(
+            self.game, self.inventory, letter_id, globals().get('ITEMS') or {})
+        if error:
+            self._alert('附件', error)
+            return
+        try:
+            self._save_satiety()
+        except Exception:
+            pass
+        self._refresh_warehouse_tab_indicators()
+        self._refresh_warehouse_list()
+        self._show_warehouse_detail(get_letter(letter_id) or info, pinned=True)
+        banner = getattr(self, '_warehouse_banner_label', None)
+        if banner is not None:
+            names = '、'.join(f"{g['name']}×{g['count']}" for g in granted)
+            try:
+                banner.config(text=f'已收下附件：{names}')
+            except Exception:
+                pass
+
+
+    def _open_letter_image_viewer(self, info):
+        """打开信件图片子页，默认放大并支持拖动、滚轮缩放。"""
+        try:
+            source = self._load_letter_image(info)
+            if source is None:
+                raise ValueError('missing letter image')
+        except Exception:
+            self._alert('信件', '这封信的图片暂时无法打开。')
+            return
+
+        parent = (self._warehouse_win
+                  if getattr(self, '_warehouse_win', None) is not None
+                  and self._warehouse_win.winfo_exists() else self.root)
+        win = tk.Toplevel(parent)
+        win.title('信件')
+        win.attributes('-toolwindow', True)
+        configure_theme(win)
+        screen_width = int(win.winfo_screenwidth())
+        screen_height = int(win.winfo_screenheight())
+        win_width = max(720, min(dp(1080), int(screen_width * 0.88)))
+        win_height = max(560, min(dp(960), int(screen_height * 0.90)))
+        win_x = max(0, (screen_width - win_width) // 2)
+        win_y = max(0, (screen_height - win_height) // 2)
+        win.geometry(f'{win_width}x{win_height}+{win_x}+{win_y}')
+        try:
+            win.transient(parent)
+        except Exception:
+            pass
+
+        controls = tk.Frame(win, bg=THEME['bg'])
+        controls.pack(fill='x', padx=12, pady=(10, 5))
+        make_label(
+            controls, '信件', bg=THEME['bg'], fg=THEME['text'],
+            font=(FONT_FAMILY, 11, 'bold')).pack(side='left')
+        make_label(
+            controls, '按住鼠标拖动 · 滚轮缩放', bg=THEME['bg'],
+            fg=THEME['muted'], font=(FONT_FAMILY, 8)).pack(
+                side='left', padx=(10, 0))
+        zoom_label = make_label(
+            controls, '100%', bg=THEME['bg'], fg=THEME['muted'],
+            font=(FONT_FAMILY, 9, 'bold'))
+        zoom_label.pack(side='right', padx=(8, 0))
+        make_button(
+            controls, '重置', lambda: set_scale(initial_scale),
+            kind='ghost', width=6).pack(side='right', padx=(6, 0))
+        make_button(
+            controls, '缩小', lambda: set_scale(state['scale'] / 1.25),
+            kind='secondary', width=6).pack(side='right', padx=(6, 0))
+        make_button(
+            controls, '放大', lambda: set_scale(state['scale'] * 1.25),
+            kind='secondary', width=6).pack(side='right', padx=(6, 0))
+
+        body = tk.Frame(win, bg=THEME['card'])
+        body.pack(fill='both', expand=True, padx=12, pady=(0, 12))
+        canvas = tk.Canvas(
+            body, bg=THEME['card_alt'], highlightthickness=0,
+            cursor='fleur')
+        hbar = tk.Scrollbar(
+            body, orient='horizontal', command=canvas.xview,
+            width=10, bd=0, highlightthickness=0,
+            troughcolor=THEME['card_alt'], bg=THEME['border'])
+        vbar = tk.Scrollbar(
+            body, orient='vertical', command=canvas.yview,
+            width=10, bd=0, highlightthickness=0,
+            troughcolor=THEME['card_alt'], bg=THEME['border'])
+        canvas.configure(xscrollcommand=hbar.set, yscrollcommand=vbar.set)
+        hbar.pack(side='bottom', fill='x')
+        vbar.pack(side='right', fill='y')
+        canvas.pack(side='left', fill='both', expand=True)
+
+        win.update_idletasks()
+        view_width = canvas.winfo_width()
+        view_height = canvas.winfo_height()
+        if view_width <= 1:
+            view_width = max(320, win_width - 36)
+        if view_height <= 1:
+            view_height = max(260, win_height - dp(96))
+        fit_width = max(1, view_width - 40) / source.width
+        fit_height = max(1, view_height - 40) / source.height
+        initial_scale = min(
+            1.0, max(0.60, fit_width, fit_height))
+        state = {'scale': initial_scale, 'photo': None, 'item': None}
+        padding = 20
+
+        def center_view(image_width, image_height):
+            current_width = canvas.winfo_width()
+            current_height = canvas.winfo_height()
+            view_width = (current_width if current_width > 1
+                          else max(320, win_width - 36))
+            view_height = (current_height if current_height > 1
+                           else max(260, win_height - dp(96)))
+            scroll_width = max(view_width, image_width + padding * 2)
+            scroll_height = max(view_height, image_height + padding * 2)
+            image_x = (padding if image_width + padding * 2 > view_width
+                       else (view_width - image_width) / 2)
+            image_y = (padding if image_height + padding * 2 > view_height
+                       else (view_height - image_height) / 2)
+            canvas.coords(state['item'], image_x, image_y)
+            canvas.configure(scrollregion=(0, 0, scroll_width, scroll_height))
+            if scroll_width > view_width:
+                canvas.xview_moveto(
+                    max(0.0, (scroll_width - view_width) / (2 * scroll_width)))
+            else:
+                canvas.xview_moveto(0.0)
+            if scroll_height > view_height:
+                canvas.yview_moveto(
+                    max(0.0, (scroll_height - view_height) / (2 * scroll_height)))
+            else:
+                canvas.yview_moveto(0.0)
+
+        def render():
+            width = max(1, round(source.width * state['scale']))
+            height = max(1, round(source.height * state['scale']))
+            rendered = source.resize(
+                (width, height), PIL.Image.Resampling.LANCZOS)
+            photo = PIL.ImageTk.PhotoImage(rendered)
+            if state['item'] is None:
+                state['item'] = canvas.create_image(
+                    padding, padding, image=photo, anchor='nw')
+            else:
+                canvas.itemconfigure(state['item'], image=photo)
+            state['photo'] = photo
+            center_view(width, height)
+            zoom_label.config(text=f'{state["scale"] * 100:.0f}%')
+
+        def set_scale(value):
+            state['scale'] = max(0.2, min(3.0, float(value)))
+            render()
+
+        def on_mousewheel(event):
+            if event.delta:
+                factor = 1.12 if event.delta > 0 else 1 / 1.12
+                set_scale(state['scale'] * factor)
+            return 'break'
+
+        def start_pan(event):
+            canvas.scan_mark(event.x, event.y)
+            canvas.configure(cursor='fleur')
+            return 'break'
+
+        def drag_pan(event):
+            canvas.scan_dragto(event.x, event.y, gain=1)
+            return 'break'
+
+        def stop_pan(event):
+            canvas.configure(cursor='fleur')
+
+        canvas.bind('<MouseWheel>', on_mousewheel)
+        canvas.bind('<ButtonPress-1>', start_pan)
+        canvas.bind('<B1-Motion>', drag_pan)
+        canvas.bind('<ButtonRelease-1>', stop_pan)
+        win.bind('<MouseWheel>', on_mousewheel)
+        win.bind('<plus>', lambda event: set_scale(state['scale'] * 1.25))
+        win.bind('<equal>', lambda event: set_scale(state['scale'] * 1.25))
+        win.bind('<minus>', lambda event: set_scale(state['scale'] / 1.25))
+        win.bind('<Escape>', lambda event: win.destroy())
+        render()
+        win.focus_set()
 
 
     def _toggle_book(self, item_id):
@@ -783,7 +1104,12 @@ class WarehouseMixin:
         for iid, info in ITEMS.items():
             if cat == '物品':
                 expected_kind = item_subpage or '材料'
-                if info.get('kind') != expected_kind:
+                if expected_kind == '消耗品':
+                    # 消耗品：类型列写「消耗品」，或整张表就叫「消耗品」都算。
+                    if (info.get('kind') != '消耗品'
+                            and info.get('category') != '消耗品'):
+                        continue
+                elif info.get('kind') != expected_kind:
                     continue
             elif info.get('category') != cat:
                 continue
@@ -828,6 +1154,11 @@ class WarehouseMixin:
                 lbl.pack(side='left')
                 lbl.bind('<Button-1>',
                          lambda e, i=iid: self._on_item_click(i))
+                # 消耗品（炼药产出的药水等）带使用效果时给一个「使用」按钮。
+                if info.get('use_effect'):
+                    make_button(row, text='使用',
+                                command=lambda i=iid: self._use_consumable(i)
+                                ).pack(side='left', padx=(6, 0))
             self._bind_warehouse_detail_frame(row, info)
         if not found:
             make_label(self._warehouse_list, text='（空）', bg=bg,
@@ -988,8 +1319,16 @@ class WarehouseMixin:
                 row, text=info['title'],
                 bg=bg, fg=THEME['text'], font=(FONT_FAMILY, 10, 'bold'),
                 cursor='hand2', anchor='w')
-            label.pack(fill='x', padx=10, pady=8)
+            label.pack(side='left', fill='x', expand=True, padx=10, pady=8)
             select = lambda e, lid=letter_id: self._select_letter(lid)
+            if letter_attachments(letter_id):
+                claimed = attachment_claimed(self.game, letter_id)
+                hint = make_label(
+                    row, text=('附件已领取' if claimed else '有附件待领取'),
+                    bg=bg, fg=(THEME['muted'] if claimed else THEME['danger']),
+                    font=(FONT_FAMILY, 9), cursor='hand2')
+                hint.pack(side='right', padx=(0, 10))
+                hint.bind('<Button-1>', select, add='+')
             row.bind('<Button-1>', select, add='+')
             label.bind('<Button-1>', select, add='+')
             self._bind_warehouse_detail_frame(row, info)
@@ -1005,12 +1344,17 @@ class WarehouseMixin:
             text=f'宝藏：{len(self.treasures)} 件 · 总价值 {total_value} G',
             bg=bg, fg='#555555', font=('Microsoft YaHei UI', 9)
         ).pack(side='left')
+        treasure_bulk_button = make_button(
+            header, '一键出售', self._show_bulk_sell_dialog,
+            kind='primary', width=8)
+        treasure_bulk_button.pack(side='left', padx=(6, 0))
         self._treasure_lock_button = make_button(
             header, text='🔒', width=3,
             relief='sunken' if self._treasure_lock_mode else 'raised',
             command=self._toggle_treasure_lock_mode)
         self._treasure_lock_button.pack(side='left', padx=(6, 0))
         if not groups:
+            treasure_bulk_button.config(state='disabled')
             self._treasure_lock_button.config(state='disabled')
         inner = tk.Frame(container, bg=bg)
         inner.pack(fill='both', expand=True)
@@ -1133,10 +1477,43 @@ class WarehouseMixin:
         self._layout_two_columns(container)
 
 
+    def _build_special_list(self, container, bg):
+        """装备-特殊子页：一次性道具（染发剂/美瞳/理发工具等）。
+
+        点名称即走原来的使用入口（_on_item_click），行为与旧的「特殊」页一致。
+        """
+        found = False
+        for iid, info in ITEMS.items():
+            if info.get('category') != '特殊':
+                continue
+            count = self.inventory.get(iid, 0)
+            if count <= 0:
+                continue
+            found = True
+            row = make_card(container, bg=bg)
+            row.pack(fill='x', pady=2)
+            row._quality_color = self._quality_color(info)
+            row._quality_border_thick = False
+            row._selected = False
+            lbl = make_label(row, text=f"{info['name']} × {count}",
+                             bg=bg, font=('Microsoft YaHei UI', 11),
+                             fg=self._quality_color(info), cursor='hand2')
+            lbl.pack(side='left')
+            lbl.bind('<Button-1>', lambda e, i=iid: self._on_item_click(i))
+            self._bind_warehouse_detail_frame(row, info)
+        if not found:
+            make_label(container, text='（空）', bg=bg,
+                       fg='#999999').pack(anchor='w')
+        self._layout_two_columns(container)
+
+
     def _build_equipment_list(self, container, bg):
         """装备标签的右侧可选列表（按当前装备子页过滤）。"""
         if self._equip_slot == '书籍':
             self._build_book_list(container, bg)
+            return
+        if self._equip_slot == '特殊':
+            self._build_special_list(container, bg)
             return
         found = False
         if self._equip_slot == '服装':
@@ -1273,13 +1650,72 @@ class WarehouseMixin:
                 self._equip_status.config(text=self._last_food_status)
 
 
+    def _use_consumable(self, item_id, amount=1):
+        """使用消耗品（炼药产出的药水）：结算前缀带来的情绪/活力/持续时间。
+
+        前缀的随机效果在使用时结算：残次品可能同时扣情绪、扣活力，
+        档次还会缩放持续时间（药水没有持续时间时改为缩放效果）。
+        """
+        info = ITEMS.get(item_id)
+        if info is None:
+            return
+        effect = info.get('use_effect') or {}
+        if not effect:
+            return
+        have = int(self.inventory.get(item_id, 0) or 0)
+        try:
+            count = max(0, min(int(amount or 1), have))
+        except (TypeError, ValueError):
+            count = 0
+        if count <= 0:
+            self._alert('使用物品', '背包里已经没有这件物品了。')
+            return
+        InventoryService.remove(self.inventory, item_id, count)
+        if (info.get('potion') or {}).get('base') == 'green_potion':
+            StatsService.record_green_potion_use(self.game)
+        emotion_delta = 0
+        hp_loss = 0
+        mask_ms = 0
+        mask_key = effect.get('mask')
+        tier_label = ''
+        for _ in range(count):
+            result = roll_potion_effect(info, self.max_hp)
+            tier_label = result.get('tier_label', '')
+            emotion_delta += int(result.get('emotion') or 0)
+            hp_loss += int(result.get('hp_loss') or 0)
+            if mask_key:
+                mask_ms = max(mask_ms, int(result.get('duration_ms') or 0))
+        if emotion_delta:
+            self.emotion = max(0, min(100, self.emotion + emotion_delta))
+        if hp_loss:
+            self.hp = max(0, self.hp - hp_loss)
+        if mask_key and mask_ms > 0:
+            self.start_potion_mask(mask_key, mask_ms)
+        name = info.get('name', item_id)
+        status = f'使用{name} ×{count}'
+        if tier_label:
+            status += f'（{tier_label}）'
+        status += '：' + format_effect_summary({
+            'emotion': emotion_delta, 'hp_loss': hp_loss,
+            'duration_ms': mask_ms})
+        if getattr(self, '_equip_status', None) is not None:
+            try:
+                self._equip_status.config(text=status)
+            except Exception:
+                pass
+        self._check_achievements()
+        self._save_satiety()
+        self._refresh_warehouse()
+        self._check_hospital_state()
+
     def _show_overview(self):
         """总览：仅列出当前启用的内容。"""
         win = tk.Toplevel(self.root)
         win.title('总览')
         win.resizable(False, False)
-        win.attributes('-toolwindow', True)
-        self._hide_from_taskbar(win)
+        # 总览也算「页面」，同样留在任务栏里。
+        self._show_in_taskbar(win)
+        win.after(80, lambda w=win: self._show_in_taskbar(w))
 
         warehouse_open = bool(
             getattr(self, '_warehouse_win', None) is not None
@@ -1449,7 +1885,7 @@ class WarehouseMixin:
 
 
     def _preview_window_alive(self):
-        for attr in ('_warehouse_win', '_adventure_win'):
+        for attr in ('_warehouse_win', '_adventure_win', '_workstation_win'):
             win = getattr(self, attr, None)
             if win is not None:
                 try:
@@ -1590,19 +2026,28 @@ class WarehouseMixin:
                 img = img.crop(bbox)
             scale_x, scale_y = getattr(
                 self, '_preview_bounce_scale', (1.0, 1.0))
+            cat_size = int(getattr(self, '_preview_cat_size', 0)
+                           or PREVIEW_CAT_SIZE)
             fit_scale = min(
-                PREVIEW_CAT_SIZE / float(max(1, img.width)),
-                PREVIEW_CAT_SIZE / float(max(1, img.height)))
+                cat_size / float(max(1, img.width)),
+                cat_size / float(max(1, img.height)))
             target_w = max(1, int(round(img.width * fit_scale * scale_x)))
             target_h = max(1, int(round(img.height * fit_scale * scale_y)))
             cat = img.resize(
                 (target_w, target_h), PIL.Image.Resampling.LANCZOS)
             preview = self._preview_background(
                 getattr(self, '_preview_background_key', None))
-            offset_x = (PREVIEW_FRAME_SIZE - target_w) // 2
-            bottom = PREVIEW_FRAME_SIZE - PREVIEW_CAT_BOTTOM_MARGIN
-            offset_y = bottom - target_h
-            preview.alpha_composite(cat, (offset_x, offset_y))
+            anchor = getattr(self, '_preview_anchor', None)
+            if anchor:
+                # 炼药页等固定布景：把模特摆到布景指定的落脚点上。
+                anchor_x, anchor_y = anchor
+                offset_x = int(round(anchor_x - target_w / 2))
+                offset_y = int(round(anchor_y - target_h))
+            else:
+                offset_x = (PREVIEW_FRAME_SIZE - target_w) // 2
+                bottom = PREVIEW_FRAME_SIZE - PREVIEW_CAT_BOTTOM_MARGIN
+                offset_y = bottom - target_h
+            preview.alpha_composite(cat, (max(0, offset_x), max(0, offset_y)))
             self._equip_preview_photo = PIL.ImageTk.PhotoImage(preview)
             self._equip_preview_label.config(image=self._equip_preview_photo)
         except Exception:

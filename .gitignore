@@ -15,16 +15,18 @@ dist/
 备份/
 
 # ---- 大体积且当前代码未引用的素材 ----
-素材/Apparel/
-素材/*.psd
+Materials/Apparel/
+Materials/*.psd
+其他素材/
 
-# ---- 由 xlsx 生成的缓存，可用 桌宠/build_content.py 重建 ----
-素材/content_cache.json
+# ---- 由 xlsx 生成的缓存，可用 CatPet/build_content.py 重建 ----
+Materials/content_cache.json
 
 # ---- 含密钥的本地备忘，不进版本库 ----
-素材/备忘.txt
+Materials/备忘.txt
 
 # ---- 运行时日志与系统文件 ----
 *.log
 .DS_Store
 Thumbs.db
+~$*
