@@ -20,7 +20,13 @@ from animation_controller import AnimationController
 from animation_state_machine import AnimationStateMachine
 from render_cache import RenderCache
 from services import GameState, ProgressionService, SaveService
-from letters import TUTORIAL_LETTER_ID
+from services.long_adventure import (
+    LongAdventureService, LONG_ADVENTURE_THRESHOLD_DAYS, LONG_EXPLORE_DAYS,
+    MINUTES_PER_DAY, is_long_adventure, days_to_minutes, minutes_to_days,
+    new_plan, elapsed_days, remaining_minutes, remaining_text,
+    LONG_ADVENTURE_EMOTION_LOSS_PER_DAY, apply_item_rewards,
+    region_supports_long_adventure)
+from letters import TUTORIAL_LETTER_ID, send_adventure_letter
 from special_events import SpecialEventService
 from potions import (
     ALCHEMY_RECIPES, POTION_MASKS, format_effect_summary, potion_tier,
@@ -347,6 +353,9 @@ ADVENTURE_FAREWELL_MS = 110   # 探险告别手势每帧
 ADVENTURE_HOP_FRAME_MS = 22   # 离场小跳帧间隔（提高水平动力）
 ADVENTURE_FALL_FRAME_MS = 33  # 离场下落帧间隔
 ADVENTURE_TITLE_UPDATE_MS = 5 * 60 * 1000
+# 长期冒险（>3 天）的进度检查间隔：每 10 分钟对一次表，够了——
+# 结算单位是「天」，而且重启后会按绝对时间补齐，不依赖这个定时器的连续性。
+LONG_ADVENTURE_CHECK_MS = 10 * 60 * 1000
 IDLE_EXP_PER_MIN = 10  # 挂机奖励：每分钟经验
 IDLE_EXP_MS = 60 * 1000
 REACH_CHECK_MS = 200       # 鼠标靠近检测间隔
@@ -590,7 +599,9 @@ REGIONS = {
           'treasure_quality_weights': TREASURE_REGION_QUALITY_WEIGHTS[2],
           'treasure_quality_caps': TREASURE_REGION_QUALITY_CAPS.get(2, {}),
           'description': '低语森林：需要等级至少 5，低于 5 级成功率固定 10%。每 5 分钟消耗 1 个面包，30 级时基准成功率最高 95%（再按事件难度打折），成功结算 3 次后解锁灰石谷。',
-          'desc': '推荐 10 级 · 自由 5~30 分钟（5 的倍数）' },
+          'desc': '推荐 10 级 · 自由 5~30 分钟（5 的倍数）',
+          'long_xp_per_day': 6200, 'long_gold_per_day': 130,
+          'long_bread_per_day': 2},
     '3': {'name': '灰石谷', 'difficulty': '极难', 'fallback': False,
           'recommended_level': 20, 'min_level': 15,
           'extra_treasure_max': 3, 'xp_per_min_min': 18,
@@ -599,7 +610,9 @@ REGIONS = {
           'treasure_quality_caps': TREASURE_REGION_QUALITY_CAPS.get(3, {}),
           'description': '灰石谷：需要等级至少 15，并且低语森林成功结算 3 次，低于 15 级成功率固定 10%。每 5 分钟消耗 1 个面包，40 级时基准成功率最高 95%（再按事件难度打折）。',
           'unlock_forest_clears': 3,
-          'desc': '推荐 20 级 · 自由 5~30 分钟（5 的倍数）' },
+          'desc': '推荐 20 级 · 自由 5~30 分钟（5 的倍数）',
+          'long_xp_per_day': 9000, 'long_gold_per_day': 200,
+          'long_bread_per_day': 3},
     # 圆心湖=4（推荐30~50级）
     '4': {'name': '圆心湖', 'difficulty': '极难', 'fallback': False,
           'recommended_level': 40, 'min_level': 30,
@@ -980,7 +993,8 @@ class DesktopPet(RendererMixin, InteractionAnimationMixin, AnimationMixin, Edito
             hp_max_initial=HP_MAX, strength_initial=STRENGTH_INITIAL,
             wisdom_initial=WISDOM_INITIAL, agility_initial=AGILITY_INITIAL,
             luck_initial=LUCK_INITIAL, emotion_initial=EMOTION_INITIAL,
-            gold_initial=STARTING_GOLD)
+            gold_initial=STARTING_GOLD,
+            region_keys=tuple(REGIONS))
         self.game = self.save_service.load()
         try:
             activated = False
@@ -1046,6 +1060,12 @@ class DesktopPet(RendererMixin, InteractionAnimationMixin, AnimationMixin, Edito
         self._adventure_title_job = None     # 托盘剩余时间刷新任务
         self._adventure_end_time = None      # 探险结束时间
         self._adventure_departing = False    # 是否正在播放离场动画
+        # 长期冒险（>3 天）：计划存在 self.game.adventure 里，重启后据此恢复；
+        # 下面这些是运行时的定时任务与最近一次途中结算的缓存。
+        self._long_adv_job = None            # 长期冒险检查定时任务
+        self._long_adv_total_days = 0        # 本次长期冒险总天数
+        self._long_adv_last_lines = []       # 最近一次途中结算的日志行
+        self._pending_long_adv_lines = []    # 待写入归来日志的途中结算行
         self._log_win = None                 # 探险日志窗口
         self._adventure_win = None           # 探险页面
         self._warehouse_win = None           # 仓库窗口
@@ -1278,6 +1298,8 @@ class DesktopPet(RendererMixin, InteractionAnimationMixin, AnimationMixin, Edito
 
         # 系统托盘后台图标（探险状态也有提示）
         self._setup_tray()
+        # 长期冒险恢复：计划存在存档里，重启后补齐错过的天数并继续计时。
+        self._restore_long_adventure()
         if not self.cat_name:
             self.root.after(300, self._prompt_cat_name)
         if self.hp <= 0:
@@ -1984,6 +2006,9 @@ class DesktopPet(RendererMixin, InteractionAnimationMixin, AnimationMixin, Edito
                 ('forest_clear_count', '森林成功结算次数'),
                 ('valley_clear_count', '灰石谷成功结算次数'),
                 ('adventure_minutes', '累计探险时长'),
+                ('long_adventure_count', '长期冒险归来次数'),
+                ('long_adventure_days', '累计长期冒险天数'),
+                ('long_adventure_letter_count', '长期冒险来信总数'),
             )),
             ('炼药记录', (
                 ('alchemy_level', '炼药等级'),
@@ -2186,6 +2211,10 @@ class DesktopPet(RendererMixin, InteractionAnimationMixin, AnimationMixin, Edito
             'forest_clear_count': f"{summary['forest_clear_count']} 次",
             'valley_clear_count': f"{summary['valley_clear_count']} 次",
             'adventure_minutes': f"{summary['adventure_minutes']} 分钟",
+            'long_adventure_count': f"{summary['long_adventure_count']} 次",
+            'long_adventure_days': f"{summary['long_adventure_days']} 天",
+            'long_adventure_letter_count': (
+                f"{summary['long_adventure_letter_count']} 封"),
             'alchemy_level': (
                 f"Lv.{max(1, int(getattr(self.game, 'alchemy_level', 1) or 1))}"),
             'alchemy_craft_count': f"{summary['alchemy_craft_count']} 次",
@@ -2870,8 +2899,14 @@ class DesktopPet(RendererMixin, InteractionAnimationMixin, AnimationMixin, Edito
         if self.hospitalized:
             text = '猫咪（在住院）'
         elif self.adventuring:
-            text = ('猫咪（在探险）\n'
-                    f'剩余探索时间：约{self._adventure_remaining_minutes()}分钟')
+            plan = self._long_adventure_plan() if hasattr(
+                self, '_long_adventure_plan') else {}
+            if plan:
+                text = (f"猫咪（长期冒险 · {self._long_adventure_progress_text()}）\n"
+                        f"剩余：{self._long_adventure_remaining_text()}")
+            else:
+                text = ('猫咪（在探险）\n'
+                        f'剩余探索时间：约{self._adventure_remaining_minutes()}分钟')
         else:
             text = '猫咪（在闲逛~）'
         self._set_tray_title(text)
@@ -3441,7 +3476,7 @@ class DesktopPet(RendererMixin, InteractionAnimationMixin, AnimationMixin, Edito
         self._adventure_departing = False
         self._adventure_end_time = None
         for attr in ('_adventure_job', '_adventure_depart_job',
-                     '_adventure_title_job'):
+                     '_adventure_title_job', '_long_adv_job'):
             job = getattr(self, attr, None)
             if job is not None:
                 try:

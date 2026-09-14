@@ -26,6 +26,9 @@ DEFAULT_STATS = {
     "mushroom_damage_count": 0,
     "alchemy_craft_count": 0,
     "green_potion_used": 0,
+    "long_adventure_count": 0,
+    "long_adventure_days": 0,
+    "long_adventure_letter_count": 0,
     "purchased_items": {},
 }
 
@@ -118,6 +121,14 @@ class StatsService:
             stats["adventure_early_fail_count"] += 1
 
     @classmethod
+    def record_long_adventure(cls, state, days, letters=0):
+        """记录一次长期冒险归来（天数与途中来信数）。"""
+        stats = cls.ensure(state)
+        stats["long_adventure_count"] += 1
+        stats["long_adventure_days"] += max(0, int(days))
+        stats["long_adventure_letter_count"] += max(0, int(letters))
+
+    @classmethod
     def record_alchemy_craft(cls, state, amount=1):
         amount = max(0, int(amount))
         if amount:
@@ -190,5 +201,9 @@ class StatsService:
             "mushroom_damage_count": int(stats["mushroom_damage_count"]),
             "alchemy_craft_count": int(stats["alchemy_craft_count"]),
             "green_potion_used": int(stats["green_potion_used"]),
+            "long_adventure_count": int(stats["long_adventure_count"]),
+            "long_adventure_days": int(stats["long_adventure_days"]),
+            "long_adventure_letter_count": int(
+                stats["long_adventure_letter_count"]),
             "purchased_items": dict(stats["purchased_items"]),
         }

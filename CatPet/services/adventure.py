@@ -89,7 +89,14 @@ class AdventureService:
         return min(damage, max(1, int(state.max_hp)))
 
     def apply_reward(self, text, state, inventory, treasures,
-                     treasure_factory, region_id=1, difficulty=1):
+                     treasure_factory, region_id=1, difficulty=1,
+                     reward_scale=1.0, item_scale=1.0, hp_scale=1.0):
+        """结算一段奖励/惩罚文本。
+
+        reward_scale 用于「一个事件代表多个 5 分钟槽位」的情形（长期冒险按天
+        结算）：经验/金币等比放大，物品与宝藏只按 item_scale 放大（避免几百倍
+        爆仓），活力按 hp_scale 放大（长期冒险传 0，避免一天 288 次扣血）。
+        """
         result = {
             'xp': 0, 'gold_delta': 0, 'hp_delta': 0,
             'parts': [], 'treasures': [], 'inventory_delta': {},
@@ -99,6 +106,19 @@ class AdventureService:
         text = str(text).strip()
         if not text or text.startswith('无'):
             return result
+
+        try:
+            reward_scale = max(0.0, float(reward_scale))
+        except (TypeError, ValueError):
+            reward_scale = 1.0
+        try:
+            item_scale = max(0.0, float(item_scale))
+        except (TypeError, ValueError):
+            item_scale = 1.0
+        try:
+            hp_scale = max(0.0, float(hp_scale))
+        except (TypeError, ValueError):
+            hp_scale = 1.0
 
         for raw in re.split(r'[，,；;、]+', text):
             token = raw.strip()
@@ -113,26 +133,31 @@ class AdventureService:
                 # 生命/活力允许小数（失败惩罚的数值已按旧的事件难度折算过）。
                 amount = sign * float(match.group(3))
                 if kind == '经验':
-                    gained = int(amount)
+                    gained = int(round(amount * reward_scale))
                     if gained > 0:
                         result['xp'] += gained
                         result['parts'].append(f'经验+{gained}')
                     continue
                 if kind == '金币':
+                    scaled = int(round(amount * reward_scale))
                     before = state.gold
-                    state.gold = max(0, state.gold + int(amount))
+                    state.gold = max(0, state.gold + scaled)
                     actual = state.gold - before
                     result['gold_delta'] += actual
                     if actual:
                         result['parts'].append(f'金币{actual:+d}')
                     continue
+                if hp_scale <= 0:
+                    continue
                 before = state.hp
                 if amount < 0:
                     damage = self.event_damage(
                         state, region_id, abs(amount), difficulty)
+                    damage = int(round(damage * hp_scale))
                     state.hp = max(0, state.hp - damage)
                 else:
-                    state.hp = min(state.max_hp, state.hp + int(amount))
+                    state.hp = min(
+                        state.max_hp, state.hp + int(round(amount * hp_scale)))
                 actual = state.hp - before
                 result['hp_delta'] += actual
                 if actual:
@@ -143,8 +168,8 @@ class AdventureService:
             if match:
                 item_name = match.group(1).strip()
                 if item_name == '宝藏':
-                    count = int(match.group(2))
-                    for _ in range(max(1, count)):
+                    count = int(round(int(match.group(2)) * item_scale))
+                    for _ in range(max(0, count)):
                         treasure = treasure_factory(region_id)
                         if treasure is None:
                             continue
@@ -155,12 +180,12 @@ class AdventureService:
                         display = treasure['prefix'] + treasure['name']
                         result['parts'].append(
                             f'{display}（{quality_name}，{treasure["value"]}G）')
-                    if not result['treasures']:
-                        result['parts'].append('宝藏生成失败')
                     continue
                 item_id = self.item_by_name.get(item_name)
                 if item_id is not None:
-                    count = int(match.group(2))
+                    count = int(round(int(match.group(2)) * item_scale))
+                    if count <= 0:
+                        continue
                     info = self.items.get(item_id) or {}
                     max_count = (1 if info.get('category') in (
                         '\u5934\u9970', '\u670d\u88c5', '\u9970\u54c1', '\u4e66\u7c4d') else None)
@@ -178,7 +203,9 @@ class AdventureService:
                 item_id = self.item_by_name.get(item_name)
                 if item_id is not None:
                     sign = -1 if match.group(2) in '－-' else 1
-                    delta = sign * int(match.group(3))
+                    delta = sign * int(round(int(match.group(3)) * item_scale))
+                    if delta == 0:
+                        continue
                     info = self.items.get(item_id) or {}
                     max_count = (1 if info.get('category') in (
                         '\u5934\u9970', '\u670d\u88c5', '\u9970\u54c1', '\u4e66\u7c4d') else None)
@@ -194,7 +221,14 @@ class AdventureService:
 
     def resolve(self, events, region_id, minutes, state, inventory,
                 treasures, treasure_factory, allow_early_fail=True,
-                early_fail_hp=10):
+                early_fail_hp=10, event_count=None, reward_scale=1.0,
+                item_scale=1.0, hp_scale=1.0, labeler=None):
+        """按槽位抽取事件并逐条判定；默认每 5 分钟 1 个事件。
+
+        event_count 可覆盖槽位数量（长期冒险按「天」结算时传入天数，并把
+        reward_scale 设为每天对应的 5 分钟槽位数）；labeler(index) 可覆盖日志
+        里的时间标签（长期冒险显示「第 n 天」）。
+        """
         result = {
             'xp': 0, 'gold_delta': 0, 'hp_delta': 0,
             'inventory_delta': {}, 'treasures': [],
@@ -212,9 +246,18 @@ class AdventureService:
             result['lines'].append('事件簿中没有该地区可用事件')
             return result
 
-        event_count = max(1, int(minutes) // 5)
+        if event_count is None:
+            event_count = max(1, int(minutes) // 5)
+        else:
+            try:
+                event_count = max(1, int(event_count))
+            except (TypeError, ValueError):
+                event_count = max(1, int(minutes) // 5)
         for event_index in range(1, event_count + 1):
-            minute_no = event_index * 5
+            if labeler is not None:
+                slot_label = str(labeler(event_index))
+            else:
+                slot_label = f'{event_index * 5}分钟'
             event = self.rng.choice(pool)
             chance = self.success_chance(
                 state.level, event['difficulty'], region_number)
@@ -237,7 +280,8 @@ class AdventureService:
             description = self.personalize_description(description, state)
             applied = self.apply_reward(
                 reward_text, state, inventory, treasures,
-                treasure_factory, region_number, event['difficulty'])
+                treasure_factory, region_number, event['difficulty'],
+                reward_scale, item_scale, hp_scale)
             result['xp'] += applied['xp']
             result['gold_delta'] += applied['gold_delta']
             result['hp_delta'] += applied['hp_delta']
@@ -249,7 +293,7 @@ class AdventureService:
             if not detail:
                 detail = '无额外奖励' if passed else '无额外惩罚'
             result['lines'].append(
-                f'{minute_no}分钟 · {event["name"]}｜{state_text}'
+                f'{slot_label} · {event["name"]}｜{state_text}'
                 f'（{chance:.0%}）：{description}；{detail}')
             if allow_early_fail and state.hp <= int(early_fail_hp):
                 result['failed_early'] = True
