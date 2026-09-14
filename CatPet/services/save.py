@@ -154,6 +154,8 @@ class SaveService:
         state.special_events = self._clean_special_events(
             data.get('special_events', []))
         state.letters = self._clean_letters(data.get('letters', []))
+        state.letter_attachments_claimed = set(self._clean_letters(
+            data.get('letter_attachments_claimed', [])))
         self._ensure_starting_letters(state)
         state.treasures = self._clean_treasures(data.get('treasures', []))
         state.logs = self._clean_logs(data.get('logs', []))
@@ -192,6 +194,9 @@ class SaveService:
         click_sound = str(data.get('click_sound') or 'cat1').strip()
         state.click_sound = click_sound if click_sound in (
             'cat1', 'cat2', 'cat3', 'silent') else 'cat1'
+        state.alchemy_level = max(
+            1, self._int_value(data, 'alchemy_level', 1))
+        state.alchemy_exp = max(0, self._int_value(data, 'alchemy_exp', 0))
         return state
 
     def save(self, state):
@@ -203,6 +208,8 @@ class SaveService:
             'new_item_categories': sorted(state.new_item_categories),
             'special_events': sorted(state.special_events),
             'letters': list(state.letters),
+            'letter_attachments_claimed': sorted(
+                getattr(state, 'letter_attachments_claimed', ()) or ()),
             'treasures': copy.deepcopy(state.treasures), 'hp': int(state.hp),
             'max_hp': int(state.max_hp), 'strength': int(state.strength),
             'wisdom': int(state.wisdom), 'luck': int(state.luck),
@@ -225,6 +232,8 @@ class SaveService:
             'sound_volume': int(state.sound_volume),
             'frame_rate': int(getattr(state, 'frame_rate', 30)),
             'click_sound': str(state.click_sound),
+            'alchemy_level': int(getattr(state, 'alchemy_level', 1)),
+            'alchemy_exp': int(getattr(state, 'alchemy_exp', 0)),
         }
         target = Path(self.save_path)
         temporary = target.with_suffix(target.suffix + '.tmp')
@@ -302,15 +311,19 @@ class SaveService:
         values = raw if isinstance(raw, dict) else {}
         result = {}
         for key in (
-                'gold_earned', 'purchase_count', 'cat_click_count',
-                'online_seconds', 'gold_zero_seen', 'emotion_max',
-                'emotion_min', 'emotion_exact10', 'hp_min',
+                'gold_earned', 'exp_earned', 'purchase_count',
+                'cat_click_count', 'online_seconds', 'gold_zero_seen',
+                'emotion_max', 'emotion_min', 'emotion_exact10', 'hp_min',
                 'adventure_early_fail_count', 'treasure_sold_count',
                 'adventure_count', 'forest_adventure_count',
                 'plain_adventure_count', 'valley_adventure_count',
-                'forest_clear_count',
-                'adventure_minutes', 'max_feed_amount',
-                'mushroom_damage_count'):
+                'plain_clear_count', 'valley_clear_count',
+                'forest_clear_count', 'adventure_minutes', 'max_feed_amount',
+                'mushroom_damage_count', 'alchemy_craft_count',
+                'green_potion_used'):
+            # 总经验是后加统计项；旧存档留空，交给 StatsService 按等级回填。
+            if key == 'exp_earned' and key not in values:
+                continue
             default = 50 if key in ('emotion_max', 'emotion_min') else 0
             try:
                 result[key] = max(0, int(values.get(key, default)))

@@ -115,6 +115,8 @@ class AchievementService:
             and (items.get(item_id) or {}).get('category') in
             ('头饰', '服装', '饰品'))
         purchased = stats.get('purchased_items', {})
+        letters = getattr(state, 'letters', ()) or ()
+        backgrounds = getattr(state, 'backgrounds', ()) or ()
         fashion_items = int(all(
             int(purchased.get(item_id, 0) or 0) > 0
             for item_id in ('hairstyle_tool', 'hair_dye', 'lens')))
@@ -141,9 +143,22 @@ class AchievementService:
             'fashion_items': fashion_items,
             'adventure_count': int(stats.get('adventure_count', 0)),
             'forest_adventure_count': int(stats.get('forest_adventure_count', 0)),
+            'plain_clear_count': int(stats.get('plain_clear_count', 0)),
+            'valley_clear_count': int(stats.get('valley_clear_count', 0)),
             'adventure_minutes': int(stats.get('adventure_minutes', 0)),
             'max_feed_amount': int(stats.get('max_feed_amount', 0)),
             'mushroom_damage_count': int(stats.get('mushroom_damage_count', 0)),
+            'treasure_chicken_feather_doll': int(any(
+                '鸡毛偶' in str(t.get('name', ''))
+                for t in (getattr(state, 'treasures', ()) or ()))),
+            'purchased_throat_lozenge': int(
+                purchased.get('throat_lozenge', 0) > 0),
+            'contract_received': int('letter_4' in letters),
+            'green_potion_used': int(stats.get('green_potion_used', 0)),
+            'alchemy_level': int(getattr(state, 'alchemy_level', 1)),
+            'alchemy_craft_count': int(stats.get('alchemy_craft_count', 0)),
+            'bread_count': int(inventory.get('bread', 0) or 0),
+            'background_count': len(backgrounds),
         }
         return summary.get(condition, 0)
 
@@ -274,7 +289,41 @@ class AchievementMixin:
         if page_available:
             self._show_achievement_selector_page()
             return
+        # 探险 / 工作站里点成就：跳到仓库的成就选择页，而不是弹一个小菜单。
+        if self._jump_to_warehouse_achievements():
+            return
         self._open_achievement_popup_menu(event)
+
+
+    def _jump_to_warehouse_achievements(self):
+        """在探险 / 工作站里点成就时，切到仓库并打开成就选择页。
+
+        返回 True 表示已经跳转成功；False 表示跳不了
+        （比如正在探险 / 住院），调用方应退回弹出菜单。
+        """
+        if getattr(self, 'adventuring', False) or getattr(
+                self, 'hospitalized', False):
+            return False
+        show_warehouse = getattr(self, 'show_warehouse', None)
+        if not callable(show_warehouse):
+            return False
+        # 三个页面共用同一批构件、必须互斥：先关掉当前页面再开仓库。
+        for closer_name in ('close_adventure', 'close_workstation'):
+            closer = getattr(self, closer_name, None)
+            if callable(closer):
+                try:
+                    closer()
+                except Exception:
+                    pass
+        show_warehouse()
+        win = getattr(self, '_warehouse_win', None)
+        try:
+            if win is None or not win.winfo_exists():
+                return False
+        except Exception:
+            return False
+        self._show_achievement_selector_page()
+        return True
 
 
     def _open_achievement_popup_menu(self, event=None):
@@ -440,7 +489,17 @@ class AchievementMixin:
             'adventure_early_fail_count': '提前失败次数',
             'adventure_count': '探险次数',
             'forest_adventure_count': '低语森林成功次数',
+            'plain_clear_count': '平原成功结算次数',
+            'valley_clear_count': '灰石谷成功结算次数',
             'adventure_minutes': '累计探险分钟数',
+            'treasure_chicken_feather_doll': '获得宝藏鸡毛偶',
+            'purchased_throat_lozenge': '购买过润喉糖',
+            'contract_received': '收到一份契约',
+            'green_potion_used': '使用淡绿色药水次数',
+            'alchemy_level': '炼药等级',
+            'alchemy_craft_count': '炼药次数',
+            'bread_count': '当前拥有面包数量',
+            'background_count': '已解锁背景数量',
             'max_feed_amount': '单次最大喂食数量',
             'mushroom_damage_count': '蘑菇吃坏肚子次数',
         }

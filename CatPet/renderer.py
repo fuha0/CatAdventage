@@ -119,6 +119,9 @@ class RendererMixin:
             round(float(tilt_key), 3),
             h_style, h_color, e_color, style, c_color,
             slots, settings, books, motion,
+            # 药水蒙版（中毒等持续状态）会改变像素，必须进键；
+            # 它只在生效/到期时变化，不会让常用图每帧重合成。
+            self.active_potion_masks(),
         ))
 
     def _airborne_render_signature(self, falling=False):
@@ -885,6 +888,13 @@ class RendererMixin:
         canvas.paste(clothes, (0, 0), clothes)
         self._paste_accessory_layers(canvas, slots, settings)
         canvas.paste(head_group, (0, 0), head_group)
+        # 药水蒙版（中毒一类持续状态）只染身体、不染小手：必须在贴手之前上色，
+        # 否则 _apply_potion_masks 会把随后贴上的两只手一起染绿。
+        # 各条手部动画通路（_render_hand_frame / _render_airborne_frame）都是
+        # 取 with_hands=False 的身体底图再单独贴手，所以自动跟着一致。
+        masks = self.active_potion_masks()
+        if masks:
+            canvas = self._apply_potion_masks(canvas, masks)
         # 小手
         hand = p.get('hand')
         if with_hands and hand is not None:
@@ -917,6 +927,49 @@ class RendererMixin:
                     right_hand = hand.transpose(PIL.Image.FLIP_LEFT_RIGHT)
                     canvas.paste(right_hand, (rx, hy), right_hand)
         return canvas
+
+    def _apply_potion_masks(self, image, masks):
+        """把生效中的药水蒙版染到合成图上（模拟中毒一类的状态）。
+
+        只染不透明像素（透明像素的 RGB 保持原样，免得破坏整图透明键），
+        alpha 完全不动。**只在贴手之前调用**，所以小手保持原色（不染手）。
+        蒙版键进了合成图缓存键，所以只在蒙版生效/到期时
+        各付一次，不会每帧重算。
+        """
+        try:
+            import numpy as np
+            palette = globals().get('POTION_MASKS') or {}
+            layers = []
+            for key in masks:
+                spec = palette.get(key)
+                if not spec:
+                    continue
+                try:
+                    strength = min(1.0, max(0.0, float(spec.get('strength', 0.0))))
+                except (TypeError, ValueError):
+                    continue
+                if strength <= 0:
+                    continue
+                color = np.asarray(spec.get('color', (144, 238, 144)),
+                                   dtype=np.float32)
+                layers.append((color, strength))
+            if not layers:
+                return image
+            arr = np.asarray(image, dtype=np.float32)
+            rgb = arr[..., :3]
+            alpha = arr[..., 3:4]
+            solid = alpha > 0
+            for color, strength in layers:
+                # 按亮度加权重：深色描边基本不变（保持轮廓清晰），
+                # 浅色部分吃到的蒙版颜色更多，整体像蒙了一层有色滤镜。
+                lum = rgb.max(axis=-1, keepdims=True) / 255.0
+                amount = strength * lum
+                blended = rgb * (1.0 - amount) + color * amount
+                rgb = np.where(solid, blended, rgb)
+            out = np.concatenate([np.clip(rgb, 0.0, 255.0), alpha], axis=-1)
+            return PIL.Image.fromarray(out.round().astype(np.uint8), 'RGBA')
+        except Exception:
+            return image
 
 
     def _full_for(self, pose, clothes_style=None, head_sway=0.0,

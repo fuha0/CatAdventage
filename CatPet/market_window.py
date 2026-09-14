@@ -15,7 +15,9 @@ QUALITY_RANK = {
 MARKET_BANNER_TEXTS = (
     '挑选喜欢的物品吧~',
     '走过路过不要错过！',
-    '清仓大甩卖！',
+    '机不可失！',
+    '真是只可爱的小猫咪~',
+    '小猫咪，今天要买点什么呢？',
 )
 
 
@@ -32,9 +34,9 @@ class MarketMixin:
         win.title('集市')
         win.resizable(False, False)
         win.geometry(f'{dp(1120)}x{dp(620)}')
-        win.attributes('-toolwindow', True)
-        self._hide_from_taskbar(win)
-        win.after(80, lambda w=win: self._hide_from_taskbar(w))
+        # 集市是「页面」，留在任务栏里方便切回来（子弹窗仍然隐藏）。
+        self._show_in_taskbar(win)
+        win.after(80, lambda w=win: self._show_in_taskbar(w))
         configure_theme(win)
         win.configure(bg=THEME['bg'])
         self._market_win = win
@@ -549,10 +551,18 @@ class MarketMixin:
 
     def _show_bulk_sell_dialog(self):
         """询问最高品质后，一键出售所有未上锁宝藏。"""
-        if (self._market_win is None
-                or not self._market_win.winfo_exists()):
+        parent = None
+        for attr in ('_market_win', '_warehouse_win'):
+            candidate = getattr(self, attr, None)
+            try:
+                if candidate is not None and candidate.winfo_exists():
+                    parent = candidate
+                    break
+            except Exception:
+                continue
+        if parent is None:
             return
-        win = tk.Toplevel(self._market_win)
+        win = tk.Toplevel(parent)
         win.title('一键出售')
         win.resizable(False, False)
         win.attributes('-topmost', True)
@@ -599,16 +609,15 @@ class MarketMixin:
         make_button(bar, '取消', win.destroy, kind='ghost',
                     width=8).pack(side='left', padx=4)
         win.update_idletasks()
-        market = self._market_win
         dialog_w = max(1, win.winfo_reqwidth())
         dialog_h = max(1, win.winfo_reqheight())
         screen_w = win.winfo_screenwidth()
         screen_h = win.winfo_screenheight()
-        x = market.winfo_rootx() + market.winfo_width() + 8
+        x = parent.winfo_rootx() + parent.winfo_width() + 8
         if x + dialog_w > screen_w:
-            x = market.winfo_rootx() - dialog_w - 8
+            x = parent.winfo_rootx() - dialog_w - 8
         x = max(0, min(x, screen_w - dialog_w))
-        y = market.winfo_rooty() + 40
+        y = parent.winfo_rooty() + 40
         y = max(0, min(y, screen_h - dialog_h - 40))
         win.geometry(f'+{x}+{y}')
         win.protocol('WM_DELETE_WINDOW', win.destroy)
@@ -621,6 +630,8 @@ class MarketMixin:
         if not targets:
             if self._market_status is not None:
                 self._market_status.config(text='没有符合条件的未上锁宝藏')
+            if getattr(self, '_equip_status', None) is not None:
+                self._equip_status.config(text='没有符合条件的未上锁宝藏')
             return
         result = MarketService.sell_treasures(
             self.game, self.treasures, targets, TREASURE_SELL_EMOTION)
@@ -630,12 +641,14 @@ class MarketMixin:
         StatsService.record_treasure_sale(self.game, result.count)
         self._check_achievements()
         self._save_satiety()
+        quality = QUALITY_NAMES.get(max_quality, '普通')
+        status = (
+            f'一键出售 {result.count} 件（最高{quality}），获得 {result.gain} G'
+            + (f'，情绪 +{result.emotion_gain}' if result.emotion_gain else ''))
         if self._market_status is not None:
-            quality = QUALITY_NAMES.get(max_quality, '普通')
-            self._market_status.config(
-                text=f'一键出售 {result.count} 件（最高{quality}），获得 {result.gain} G'
-                     + (f'，情绪 +{result.emotion_gain}'
-                        if result.emotion_gain else ''))
+            self._market_status.config(text=status)
+        if getattr(self, '_equip_status', None) is not None:
+            self._equip_status.config(text=status)
         self._refresh_market()
         self._refresh_warehouse()
 

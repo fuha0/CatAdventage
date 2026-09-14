@@ -1,7 +1,6 @@
 # -*- coding: utf-8 -*-
 """信件定义与投递。"""
 
-LETTER_ENVELOPE_IMAGE = 'ui/envelop.png'
 TUTORIAL_LETTER_ID = 'letter_2'
 
 TUTORIAL_BODY = """游戏教程：
@@ -28,8 +27,7 @@ LETTER_DEFINITIONS = {
         'kind': '信件',
         'quality': '特别',
         'desc': '最开始的信。',
-        'presentation': 'envelope',
-        'envelope': LETTER_ENVELOPE_IMAGE,
+        'presentation': 'image',
         'content_image': 'ui/word1.png',
         'event_number': 1,
     },
@@ -44,6 +42,32 @@ LETTER_DEFINITIONS = {
         'presentation': 'text',
         'body': TUTORIAL_BODY,
         'starting': True,
+    },
+    'letter_3': {
+        'id': 'letter_3',
+        'number': 3,
+        'title': '巴顿老爷商行的广告',
+        'category': '信件',
+        'kind': '信件',
+        'quality': '特别',
+        'desc': '巴顿老爷商行送来的宣传单。',
+        'presentation': 'image',
+        'content_image': 'ui/word2.png',
+        'event_number': 2,
+    },
+    'letter_4': {
+        'id': 'letter_4',
+        'number': 4,
+        'title': '一份契约',
+        'category': '信件',
+        'kind': '信件',
+        'quality': '特别',
+        'desc': '与巴顿老爷有关的契约，随信附来一口锅。',
+        'presentation': 'image',
+        'content_image': 'ui/word3.png',
+        'event_number': 2,
+        # 附件：需要在信件详情里点「领取附件」才会进仓库。
+        'attachments': ({'item': 'alchemy_pot', 'count': 1},),
     },
 }
 LETTERS = LETTER_DEFINITIONS
@@ -78,3 +102,92 @@ def send_letter(game, letter_id):
     letters.append(letter_id)
     letters.sort(key=lambda item: LETTER_DEFINITIONS.get(item, {}).get('number', 9999))
     return True
+
+
+# ---------- 信件附件 ----------
+# 附件定义写在 LETTER_DEFINITIONS 的 attachments 字段里，支持三种写法：
+#   ({'item': '炼药锅键名', 'count': 2},)      —— 推荐
+#   ('炼药锅键名',)                            —— 数量默认 1
+# 附件不会随信件自动入包，必须在信件详情里点「领取附件」，领取记录存在
+# game.letter_attachments_claimed 里，重复点击不会二次发放。
+
+def letter_attachments(letter_id):
+    """规范化某封信的附件列表：[{'item': 键名, 'count': 数量}, ...]。"""
+    letter = LETTER_DEFINITIONS.get(str(letter_id))
+    if not letter:
+        return []
+    raw = letter.get('attachments') or ()
+    if isinstance(raw, dict):
+        raw = tuple(raw.items())
+    result = []
+    for entry in raw:
+        if isinstance(entry, str):
+            item_id, count = entry, 1
+        elif isinstance(entry, (list, tuple)) and len(entry) == 2:
+            item_id, count = entry
+        elif isinstance(entry, dict):
+            item_id = entry.get('item') or entry.get('item_id')
+            count = entry.get('count', 1)
+        else:
+            continue
+        item_id = str(item_id or '').strip()
+        if not item_id:
+            continue
+        try:
+            count = max(1, int(count))
+        except (TypeError, ValueError):
+            count = 1
+        result.append({'item': item_id, 'count': count})
+    return result
+
+
+def has_letter_attachments(letter_id):
+    """这封信有没有附件。"""
+    return bool(letter_attachments(letter_id))
+
+
+def attachment_claimed(game, letter_id):
+    """附件是否已经领取过。"""
+    claimed = getattr(game, 'letter_attachments_claimed', None)
+    if not isinstance(claimed, (list, tuple, set)):
+        return False
+    target = str(letter_id)
+    return any(str(value) == target for value in claimed)
+
+
+def claim_letter_attachments(game, inventory, letter_id, items=None):
+    """领取信件附件，返回 (已领取条目列表, 错误信息)。
+
+    领取成功后把信件编号记进 game.letter_attachments_claimed，
+    并把物品真正加进 inventory（单件类物品最多 1 个）。
+    """
+    # 延迟导入：letters 会被 services.save 导入，模块级导入会绕成环。
+    from services.inventory import InventoryService
+
+    letter_id = str(letter_id)
+    attachments = letter_attachments(letter_id)
+    if not attachments:
+        return [], '这封信没有附件。'
+    if attachment_claimed(game, letter_id):
+        return [], '附件已经领取过了。'
+    claimed = getattr(game, 'letter_attachments_claimed', None)
+    if not isinstance(claimed, list):
+        claimed = list(claimed or ())
+        game.letter_attachments_claimed = claimed
+    items = items or {}
+    granted = []
+    for entry in attachments:
+        item_id = entry['item']
+        info = items.get(item_id) or {}
+        max_count = (1 if info.get('category') in (
+            '\u5934\u9970', '\u670d\u88c5', '\u9970\u54c1', '\u4e66\u7c4d') else None)
+        actual = InventoryService.add(
+            inventory, item_id, entry['count'], max_count=max_count)
+        granted.append({
+            'item': item_id,
+            'name': info.get('name') or item_id,
+            'count': actual or entry['count'],
+        })
+    claimed.append(letter_id)
+    return granted, ''
+

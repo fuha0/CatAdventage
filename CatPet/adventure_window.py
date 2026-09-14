@@ -13,15 +13,15 @@ class AdventureMixin:
         if region is None:
             return
         if region['fallback']:
-            minutes = region.get('fixed_minutes', 5)
+            if minutes not in PLAIN_EXPLORE_TIMES:
+                return
         elif minutes not in EXPLORE_TIMES:
             return
         if self.hp < HP_LOW_AT:
             self._alert('探险', '活力值不足 20，无法探险')
             return
-        if not region['fallback'] and self.level < region.get('min_level', 5):
-            self._alert('探险', '等级不够哦，请先提升实力吧！')
-            return
+        # 等级低于地区最低要求不再拦截：允许硬闯，但成功率固定 10%
+        # （由 AdventureService.success_chance 判定）。
         bread_cost = 0
         if not region['fallback']:
             bread_cost = math.ceil(
@@ -268,11 +268,15 @@ class AdventureMixin:
 
 
     def _roll_adventure_region_item(self, region_id):
-        """按地区随机抽取一种可获得物品，数量为 0~3。"""
+        """从该地区的可获得物品里随机抽 0~3 件，每件各 1 个。
+
+        抽到的几件**可以是不同物品**（不重复取同一种），返回
+        [(item_id, count), ...]；一件都没抽到时返回空列表。
+        """
         try:
             region_number = int(region_id)
         except (TypeError, ValueError):
-            return None, 0
+            return []
         candidates = []
         for item_id, info in ITEMS.items():
             try:
@@ -282,13 +286,16 @@ class AdventureMixin:
             if region_number in regions:
                 candidates.append(item_id)
         if not candidates:
-            return None, 0
-        item_id = random.choice(candidates)
+            return []
         amount = random.randint(0, 3)
         if amount <= 0:
-            return item_id, 0
-        actual = InventoryService.add(self.inventory, item_id, amount)
-        return item_id, actual
+            return []
+        picked = random.sample(candidates, min(amount, len(candidates)))
+        gained = []
+        for item_id in picked:
+            if InventoryService.add(self.inventory, item_id, 1) > 0:
+                gained.append((item_id, 1))
+        return gained
 
 
     def _unlock_treasure_bonuses(self):
@@ -300,36 +307,42 @@ class AdventureMixin:
             return True
         return False
 
+    def _adventure_service(self, with_success=True):
+        """构造探险结算服务，统一注入各地区的最低等级与满成功率等级。
+
+        min_levels 决定「等级不够时成功率固定 10%」这条规则；
+        success_levels 决定达到最低等级后成功率爬到 95% 封顶所需的等级。
+        """
+        min_levels = {int(key): int(region.get('min_level', 1))
+                      for key, region in REGIONS.items()}
+        kwargs = {'min_levels': min_levels}
+        if with_success:
+            kwargs['success_levels'] = REGION_SUCCESS_LEVELS
+            kwargs['max_success'] = 0.95
+        return AdventureService(
+            ITEMS, REGION_RECOMMENDED_LEVEL, QUALITY_NAMES, random, **kwargs)
+
     def _success_chance(self, difficulty, region_id=1):
-        """地区成功率：按地区满成功率等级计算，最高 80%。"""
-        service = AdventureService(
-            ITEMS, REGION_RECOMMENDED_LEVEL, QUALITY_NAMES, random,
-            success_levels=REGION_SUCCESS_LEVELS, max_success=0.8)
+        """事件成功率：未达地区最低等级固定 10%，否则地区基准 × 事件难度。"""
+        service = self._adventure_service()
         return service.success_chance(self.level, difficulty, region_id)
 
-
     def _event_damage(self, severity, region_id, difficulty):
-        """按事件难度、地区和当前等级计算实际扣血。"""
-        service = AdventureService(
-            ITEMS, REGION_RECOMMENDED_LEVEL, QUALITY_NAMES, random)
+        """按惩罚强度、地区和当前等级计算实际扣血（难度已折进惩罚数值）。"""
+        service = self._adventure_service(with_success=False)
         return service.event_damage(self.game, region_id, severity, difficulty)
-
 
     def _apply_event_reward(self, text, region_id=1, difficulty=1):
         """结算奖励/惩罚；宝藏按地区品质上限生成。"""
-        service = AdventureService(
-            ITEMS, REGION_RECOMMENDED_LEVEL, QUALITY_NAMES, random)
+        service = self._adventure_service(with_success=False)
         return service.apply_reward(
             text, self.game, self.inventory, self.treasures,
             self._generate_treasure, region_id, difficulty)
 
-
     def _resolve_adventure_events(self, region_id, minutes,
                                   allow_early_fail=True):
-        """按分钟抽取事件并逐条判定；每分钟 1 个事件。"""
-        service = AdventureService(
-            ITEMS, REGION_RECOMMENDED_LEVEL, QUALITY_NAMES, random,
-            success_levels=REGION_SUCCESS_LEVELS, max_success=0.8)
+        """按分钟抽取事件并逐条判定；每 5 分钟 1 个事件。"""
+        service = self._adventure_service()
         return service.resolve(
             self._load_event_book(), region_id, minutes, self.game,
             self.inventory, self.treasures, self._generate_treasure,
@@ -337,7 +350,7 @@ class AdventureMixin:
 
 
     def _finish_adventure(self, simulated=False):
-        """探险结束：结算基础收益、逐分钟事件和日志。"""
+        """探险结束：结算基础收益、逐次事件和日志。"""
         self.motion.finish('adventure_wave', 'idle')
         self.motion.clear_expression('expression_jump')
         self._adventure_job = None
@@ -369,25 +382,19 @@ class AdventureMixin:
 
         inventory_before = {str(k): int(v) for k, v in self.inventory.items()}
         event_result = self._resolve_adventure_events(region_id, minutes)
-        try:
-            extra_max = max(0, int(region.get('extra_treasure_max', 0)))
-        except (TypeError, ValueError):
-            extra_max = 0
-        try:
-            average_success = max(
-                0.0, min(0.8, float(event_result.get('average_success', 0.0))))
-        except (TypeError, ValueError):
-            average_success = 0.0
-        extra_draw_count = (
-            max(0, int(minutes)) // EXTRA_TREASURE_INTERVAL_MINUTES)
-        extra_treasure_chance = min(
-            1.0, average_success * EXTRA_TREASURE_CHANCE_FACTOR)
+        failure_count = int(event_result.get('failure_count', 0) or 0)
+        base_extra_chance_points = min(
+            100, (max(1, int(minutes)) // 5) * 20)
+        failure_penalty_points = sum(
+            random.randint(5, 10) for _ in range(failure_count))
+        extra_treasure_chance_points = max(
+            0, base_extra_chance_points - failure_penalty_points)
+        extra_treasure_chance = extra_treasure_chance_points / 100.0
+        expected_extra_treasures = extra_treasure_chance * 3.0
+        extra_treasure_count = max(
+            0, min(3, int(expected_extra_treasures + 0.5)))
         extra_treasures = []
-        for _ in range(extra_draw_count):
-            if len(extra_treasures) >= extra_max:
-                break
-            if random.random() >= extra_treasure_chance:
-                continue
+        for _ in range(extra_treasure_count):
             treasure = self._generate_treasure(region_id)
             if treasure is None:
                 continue
@@ -398,8 +405,7 @@ class AdventureMixin:
         gained_gold = base_gold + event_result['gold_delta']
         early_fail = event_result.get('failed_early', False)
         loot_loss_lines = []
-        region_item_id = None
-        region_item_count = 0
+        region_items = []
         if early_fail:
             raw_xp = max(0, gained_xp)
             gained_xp = int(round(raw_xp * EARLY_ADVENTURE_REWARD_RATE))
@@ -425,8 +431,7 @@ class AdventureMixin:
                     t for t in self.treasures
                     if t.get('uid') not in lost_ids]
                 loot_loss_lines.append(f'宝藏 -{treasure_loss}')
-        region_item_id, region_item_count = self._roll_adventure_region_item(
-            region_id)
+        region_items = self._roll_adventure_region_item(region_id)
         item_drop_totals = {}
         for item_id, after in self.inventory.items():
             delta = int(after) - inventory_before.get(str(item_id), 0)
@@ -459,7 +464,7 @@ class AdventureMixin:
         if self._adventure_bread_cost:
             log_lines.append(f'出发消耗：面包 ×{self._adventure_bread_cost}')
         log_lines.append(f'基础收获：金币 +{base_gold}、经验 +{base_xp}')
-        log_lines.append(f'事件结算：{minutes} 个事件')
+        log_lines.append(f'事件结算：{minutes // 5}个事件（每5分钟1次）')
         log_lines.extend(event_result['lines'])
         extra_text = ''
         if extra_treasures:
@@ -468,15 +473,18 @@ class AdventureMixin:
                 for treasure in extra_treasures]
             extra_text = '：' + '、'.join(names)
         log_lines.append(
-            f'额外宝藏判定：每 {EXTRA_TREASURE_INTERVAL_MINUTES} 分钟抽取 1 次，'
-            f'共 {extra_draw_count} 次；平均成功率 {average_success:.0%} × '
-            f'{EXTRA_TREASURE_CHANCE_FACTOR:.0%} = '
-            f'{extra_treasure_chance:.0%}，获得 '
-            f'{len(extra_treasures)}/{extra_max} 件{extra_text}')
-        region_item_name = ITEMS.get(region_item_id, {}).get(
-            'name', '无') if region_item_id else '无'
+            f'额外宝藏判定：基础 {base_extra_chance_points}% - 失败惩罚 '
+            f'{failure_penalty_points}% = {extra_treasure_chance_points}%，'
+            f'预计 {expected_extra_treasures:.1f} 件，获得 '
+            f'{len(extra_treasures)}/3 件{extra_text}')
+        if region_items:
+            region_item_text = '、'.join(
+                f"{ITEMS.get(item_id, {}).get('name', item_id)} ×{count}"
+                for item_id, count in region_items)
+        else:
+            region_item_text = '无'
         log_lines.append(
-            f'地区额外收获：{region_item_name} ×{region_item_count}（0~3）')
+            f'地区额外收获：{region_item_text}（抽 0~3 件，可为不同物品）')
         if early_fail:
             log_lines.append('提前结束惩罚：金币/经验仅保留 40%')
             log_lines.append('物品损失：' + ('、'.join(loot_loss_lines)
@@ -535,20 +543,24 @@ class AdventureMixin:
             recommended = region.get('recommended_level', 1)
             min_level = region.get('min_level', 1)
             if region.get('fallback'):
-                adv_menu.add_command(
-                    label=f'{region["name"]}（推荐 {recommended}级 · 5 分钟 · 不消耗面包）',
-                    command=lambda r=rid:
-                    self._confirm_adventure(r, 5))
+                plain_menu = tk.Menu(adv_menu, tearoff=0)
+                adv_menu.add_cascade(
+                    label=f'{region["name"]}（推荐 {recommended}级 · 不消耗面包）',
+                    menu=plain_menu)
+                for t in PLAIN_EXPLORE_TIMES:
+                    plain_menu.add_command(
+                        label=f'{t} 分钟',
+                        command=lambda r=rid, m=t:
+                        self._confirm_adventure(r, m))
                 continue
+            # 未达最低等级不再禁止出发：可以硬闯，但成功率固定只有 10%。
             if self.level < min_level:
-                adv_menu.add_command(
-                    label=f'{region["name"]}（等级不够哦，请先提升实力吧！）',
-                    state='disabled')
-                continue
+                label = (f'{region["name"]}（未达最低等级 {min_level} 级，'
+                         f'成功率仅 10%）')
+            else:
+                label = f'{region["name"]}（推荐 {recommended}级）'
             sub = tk.Menu(adv_menu, tearoff=0)
-            adv_menu.add_cascade(
-                label=f'{region["name"]}（推荐 {recommended}级）',
-                menu=sub)
+            adv_menu.add_cascade(label=label, menu=sub)
             for t in EXPLORE_TIMES:
                 sub.add_command(
                     label=f'{t}分钟',
@@ -567,8 +579,8 @@ class AdventureMixin:
             minutes = int(minutes)
         except (TypeError, ValueError):
             return
-        if region['fallback']:
-            minutes = region.get('fixed_minutes', 5)
+        if region['fallback'] and minutes not in PLAIN_EXPLORE_TIMES:
+            return
         bread_cost = 0
         if not region['fallback']:
             bread_cost = math.ceil(
@@ -578,7 +590,11 @@ class AdventureMixin:
             lines.append(f'探险会消耗 {bread_cost} 个面包。')
         else:
             lines.append('风和平原不消耗面包。')
-        if self.level < region.get('recommended_level', 1):
+        if self.level < region.get('min_level', 1) and not region.get('fallback'):
+            lines.append(
+                f'警告：未达最低等级 {region.get("min_level", 1)} 级，'
+                '本次探险的事件成功率固定只有 10%！')
+        elif self.level < region.get('recommended_level', 1):
             lines.append('警告：等级小于推荐等级')
         if self.hp < self.max_hp * 0.5:
             lines.append('警告：猫咪的活力不足')
